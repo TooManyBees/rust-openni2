@@ -3,7 +3,7 @@ use std::{ptr, fmt, mem, slice};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use types::{Status, SensorType, VideoMode};
+use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo};
 use stream::Stream;
 
 pub struct Device {
@@ -67,6 +67,21 @@ impl Device {
         Stream::create(&self.handle, sensor_type)
     }
 
+    pub fn color_depth_sync(&self) -> bool {
+        unsafe {
+            oniDeviceGetDepthColorSyncEnabled(self.handle) != 0
+        }
+    }
+
+    pub fn enable_color_depth_sync(&mut self, enabled: bool) -> Status {
+        if enabled {
+            unsafe { oniDeviceEnableDepthColorSync(self.handle) }.into()
+        } else {
+            unsafe { oniDeviceDisableDepthColorSync(self.handle) }
+            Status::Ok
+        }
+    }
+
     pub fn is_property_supported(&self, property: OniDeviceProperty) -> bool {
         let res = unsafe { oniDeviceIsPropertySupported(self.handle, property) };
         res == 1
@@ -127,6 +142,21 @@ impl Device {
             _ => Err(status),
         }
     }
+
+    // TODO: just replace with seek??
+    // pub fn is_command_supported(&self, command: Command) -> bool {
+    //     unsafe { oniDeviceIsCommandSupported(self.handle, command) != 0 }
+    // }
+
+    // pub fn invoke_command(&mut self, command: Command) -> Status {
+    //     unsafe { oniDeviceInvoke(self.handle, command, data, dataSize) }.into()
+    // }
+
+    pub fn is_image_registration_mode_supported(&self, mode: ImageRegistrationMode) -> bool {
+        unsafe { oniDeviceIsImageRegistrationModeSupported(self.handle, mode as i32) != 0 }
+    }
+
+
 }
 
 impl Drop for Device {
@@ -157,10 +187,4 @@ impl From<OniDeviceInfo> for DeviceInfo {
             usb_product_id: info.usbProductId as u16,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct SensorInfo {
-    sensor_type: SensorType,
-    video_modes: Vec<VideoMode>,
 }

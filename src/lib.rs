@@ -57,6 +57,18 @@ pub fn get_device_list() -> Vec<DeviceInfo> {
     mapped
 }
 
+// pub fn register_device_callbacks() -> Status {
+
+// }
+
+// pub fn unregister_device_callbacks() {
+
+// }
+
+// pub fn wait_for_any_stream() -> Status {
+
+// }
+
 pub fn set_console_log(state: bool) -> Status {
     let return_value = unsafe {
         if state {
@@ -81,6 +93,6 @@ pub fn bytes_per_pixel(format: PixelFormat) -> usize {
         PixelFormat::GRAY16 => 2,
         PixelFormat::JPEG => 1,
         PixelFormat::YUYV => 2,
-        // _ => unsafe { oniFormatBytesPerPixel(format) as usize },
+        // _ => unsafe { oniFormatBytesPerPixel(format as i32) as usize },
     }
 }

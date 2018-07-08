@@ -214,3 +214,9 @@ impl fmt::Display for Version {
         write!(f, "{}.{}.{}.{}", self.major, self.minor, self.maintenance, self.build)
     }
 }
+
+#[derive(Debug)]
+pub struct SensorInfo {
+    pub sensor_type: SensorType,
+    pub video_modes: Vec<VideoMode>,
+}

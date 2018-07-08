@@ -1,15 +1,16 @@
+use std::marker::PhantomData;
 use std::os::raw::{c_int, c_float, c_void};
-use std::{ptr, fmt, mem};
+use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
 use frame::Frame;
-use types::{Status, SensorType, PixelFormat, VideoMode};
+use types::{Status, SensorType, PixelFormat, VideoMode, SensorInfo};
 use super::bytes_per_pixel;
 
 pub struct Stream<'device> {
     device_handle: &'device OniDeviceHandle,
     stream_handle: OniStreamHandle,
-    // sensor_type: SensorType,
+    sensor_type: SensorType,
 }
 
 impl<'device> Stream<'device> {
@@ -22,7 +23,7 @@ impl<'device> Stream<'device> {
             Status::Ok => Ok(Stream {
                 device_handle: device_handle,
                 stream_handle: stream_handle,
-                // sensor_type: sensor_type,
+                sensor_type: sensor_type,
             }),
             _ => Err(status)
         }
@@ -174,6 +175,28 @@ impl<'device> Stream<'device> {
         match status {
             Status::Ok => Ok(()),
             _ => Err(status),
+        }
+    }
+
+    pub fn get_sensor_info(&self) -> Option<SensorInfo> {
+        unsafe {
+            let ptr: *const OniSensorInfo = oniStreamGetSensorInfo(self.stream_handle);
+            if ptr.is_null() {
+                None
+            } else {
+                let info: OniSensorInfo = *ptr;
+                let len = info.numSupportedVideoModes as usize;
+                assert!(!info.pSupportedVideoModes.is_null());
+                let video_modes = slice::from_raw_parts(info.pSupportedVideoModes, len)
+                    .iter()
+                    .map(|&mode| mode.into())
+                    .collect::<Vec<VideoMode>>();
+                mem::forget(info); // i think?
+                Some(SensorInfo {
+                    sensor_type: self.sensor_type,
+                    video_modes: video_modes,
+                })
+            }
         }
     }
 
