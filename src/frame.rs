@@ -1,5 +1,6 @@
 use openni2_sys::*;
 use super::bytes_per_pixel;
+use types::VideoMode;
 use std::slice;
 
 #[derive(Debug)]
@@ -23,8 +24,8 @@ impl<'a> Frame<'a> {
     }
 
     // FIXME: don't return private OniVideoMode
-    pub fn video_mode(&self) -> OniVideoMode {
-        self.oni_frame.videoMode
+    pub fn video_mode(&self) -> VideoMode {
+        self.oni_frame.videoMode.into()
     }
 
     pub fn inspect(&self) {

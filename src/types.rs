@@ -190,6 +190,17 @@ pub struct VideoMode {
     pub fps: c_int,
 }
 
+impl From<OniVideoMode> for VideoMode {
+    fn from(mode: OniVideoMode) -> Self {
+        VideoMode {
+            pixel_format: mode.pixelFormat.into(),
+            resolution_x: mode.resolutionX,
+            resolution_y: mode.resolutionY,
+            fps: mode.fps,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Version {
     pub major: c_int,

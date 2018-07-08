@@ -52,14 +52,7 @@ impl Device {
                 assert!(!info.pSupportedVideoModes.is_null());
                 let video_modes = slice::from_raw_parts(info.pSupportedVideoModes, len)
                     .iter()
-                    .map(|mode| {
-                        VideoMode {
-                            pixel_format: mode.pixelFormat.into(),
-                            resolution_x: mode.resolutionX,
-                            resolution_y: mode.resolutionY,
-                            fps: mode.fps,
-                        }
-                    })
+                    .map(|&mode| mode.into())
                     .collect::<Vec<VideoMode>>();
                 mem::forget(info); // i think?
                 Some(SensorInfo {
