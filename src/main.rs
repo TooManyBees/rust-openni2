@@ -42,7 +42,7 @@ fn main() {
                     // println!("Gain: {:?}", stream.get_gain().ok());
                     println!("Starting stream: {:?}", stream.start());
                     {
-                        let stream_reader = stream.reader(openni2::PixelFormat::RGB888);
+                        let stream_reader = stream.reader();
                         for _ in 0..5 {
                             let frame = stream_reader.read();
                             println!("Got frame: {:?}", frame.video_mode());
@@ -54,7 +54,7 @@ fn main() {
                     println!("{:?}", stream.set_video_mode(openni2::VideoMode { pixel_format: openni2::PixelFormat::RGB888, resolution_x: 1280, resolution_y: 960, fps: 30 }));
                     println!("Starting stream: {:?}", stream.start());
                     {
-                        let stream_reader = stream.reader(openni2::PixelFormat::RGB888);
+                        let stream_reader = stream.reader();
                         for _ in 0..5 {
                             let frame = stream_reader.read();
                             println!("Got frame: {:?}", frame.video_mode());

@@ -182,8 +182,7 @@ impl<'device> Stream<'device> {
     //     res == 1
     // }
 
-    // FIXME: do we need pixel_format?
-    pub fn reader(&mut self, pixel_format: PixelFormat) -> StreamReader {
+    pub fn reader(&mut self /*, pixel_format: PixelFormat */) -> StreamReader {
         let video_format = self.get_video_mode()
             .expect("couldn't check video format of stream before reading");
         StreamReader { handle: &self.stream_handle, pixel_format: video_format.pixel_format }
