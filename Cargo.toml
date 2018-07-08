@@ -1,0 +1,7 @@
+[package]
+name = "openni2"
+version = "0.1.0"
+authors = ["Jesse Bees <jesse@toomanybees.com>"]
+
+[dependencies]
+openni2-sys = { path = "../openni2-sys" }
