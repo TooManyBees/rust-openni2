@@ -1,9 +1,9 @@
 use std::os::raw::{c_int, c_char, c_float, c_void};
-use std::{ptr, fmt, mem};
+use std::{ptr, fmt, mem, slice};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use types::{Status, SensorType};
+use types::{Status, SensorType, VideoMode};
 use stream::Stream;
 
 pub struct Device {
@@ -47,10 +47,20 @@ impl Device {
             if ptr.is_null() {
                 None
             } else {
-                let info: Box<OniSensorInfo> = mem::transmute(ptr);
+                let info: OniSensorInfo = *ptr;
                 let len = info.numSupportedVideoModes as usize;
                 assert!(!info.pSupportedVideoModes.is_null());
-                let video_modes = Vec::from_raw_parts(info.pSupportedVideoModes, len, len);
+                let video_modes = slice::from_raw_parts(info.pSupportedVideoModes, len)
+                    .iter()
+                    .map(|mode| {
+                        VideoMode {
+                            pixel_format: mode.pixelFormat.into(),
+                            resolution_x: mode.resolutionX,
+                            resolution_y: mode.resolutionY,
+                            fps: mode.fps,
+                        }
+                    })
+                    .collect::<Vec<VideoMode>>();
                 Some(SensorInfo {
                     sensor_type: sensor_type,
                     video_modes: video_modes,
@@ -158,5 +168,5 @@ impl From<OniDeviceInfo> for DeviceInfo {
 #[derive(Debug)]
 pub struct SensorInfo {
     sensor_type: SensorType,
-    video_modes: Vec<OniVideoMode> // FIXME: return VideoMode
+    video_modes: Vec<VideoMode>,
 }
