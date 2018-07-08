@@ -61,6 +61,7 @@ impl Device {
                         }
                     })
                     .collect::<Vec<VideoMode>>();
+                mem::forget(info); // i think?
                 Some(SensorInfo {
                     sensor_type: sensor_type,
                     video_modes: video_modes,
