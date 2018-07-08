@@ -3,7 +3,7 @@ use std::{ptr, fmt, mem};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use enums::{Status, SensorType};
+use types::{Status, SensorType};
 use stream::Stream;
 
 pub struct Device {
@@ -35,7 +35,7 @@ impl Device {
                 oni_info.into()
             },
             _ => {
-                mem::forget(oni_info);
+                // mem::forget(oni_info);
                 panic!("Couldn't get device info; add error handling!");
             }
         }
@@ -158,5 +158,5 @@ impl From<OniDeviceInfo> for DeviceInfo {
 #[derive(Debug)]
 pub struct SensorInfo {
     sensor_type: SensorType,
-    video_modes: Vec<OniVideoMode>
+    video_modes: Vec<OniVideoMode> // FIXME: return VideoMode
 }

@@ -7,19 +7,18 @@ use openni2_sys::*;
 mod device;
 mod stream;
 mod frame;
-mod enums;
-use device::DeviceInfo;
+mod types;
 
-pub use enums::{Status, PixelFormat, SensorType};
-pub use device::Device;
-
-#[derive(Debug, Copy, Clone)]
-pub struct VideoMode {
-    pub pixel_format: PixelFormat,
-    pub resolution_x: c_int,
-    pub resolution_y: c_int,
-    pub fps: c_int,
-}
+pub use types::{
+    Status,
+    SensorType,
+    PixelFormat,
+    DeviceState,
+    ImageRegistrationMode,
+    Timeout,
+    VideoMode,
+};
+pub use device::{Device, DeviceInfo};
 
 pub fn init(major: c_int, minor: c_int) -> Status {
     unsafe { oniInitialize(major * 1000 + minor) }.into()
@@ -29,6 +28,7 @@ pub fn shutdown() {
     unsafe { oniShutdown() };
 }
 
+// FIXME: returning a private OniVersion type
 pub fn get_version() -> OniVersion {
     unsafe { oniGetVersion() }
 }

@@ -1,6 +1,6 @@
 use openni2_sys::*;
-use super::{Status, bytes_per_pixel};
-use std::{mem, slice};
+use super::bytes_per_pixel;
+use std::slice;
 
 #[derive(Debug)]
 pub struct Frame<'a> {
@@ -22,6 +22,7 @@ impl<'a> Frame<'a> {
         }
     }
 
+    // FIXME: don't return private OniVideoMode
     pub fn video_mode(&self) -> OniVideoMode {
         self.oni_frame.videoMode
     }
@@ -51,7 +52,7 @@ impl<'a> Frame<'a> {
 
 macro_rules! isPixel {
     ($($in:ty),+) => (
-        pub trait Pixel: Clone {}
+        pub trait Pixel: Copy {}
         $(impl Pixel for $in {})+
     )
 }

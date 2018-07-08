@@ -3,8 +3,8 @@ use std::{ptr, fmt, mem};
 
 use openni2_sys::*;
 use frame::Frame;
-use enums::{Status, SensorType, PixelFormat};
-use super::{VideoMode, bytes_per_pixel};
+use types::{Status, SensorType, PixelFormat, VideoMode};
+use super::bytes_per_pixel;
 
 pub struct Stream<'device> {
     device_handle: &'device OniDeviceHandle,
@@ -14,7 +14,7 @@ pub struct Stream<'device> {
 
 impl<'device> Stream<'device> {
     pub fn create(device_handle: &'device OniDeviceHandle, sensor_type: SensorType) -> Result<Self, Status> {
-        let mut stream_handle = ptr::null_mut();
+        let mut stream_handle: OniStreamHandle = ptr::null_mut();
         let status = unsafe {
             oniDeviceCreateStream(*device_handle, sensor_type as i32, &mut stream_handle)
         }.into();
@@ -182,6 +182,7 @@ impl<'device> Stream<'device> {
     //     res == 1
     // }
 
+    // FIXME: do we need pixel_format?
     pub fn reader(&mut self, pixel_format: PixelFormat) -> StreamReader {
         let video_format = self.get_video_mode()
             .expect("couldn't check video format of stream before reading");
