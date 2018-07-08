@@ -47,12 +47,12 @@ fn get_extended_error() -> String {
 pub fn get_device_list() -> Vec<DeviceInfo> {
     let mut pointer = ptr::null_mut();
     let mut count = ONI_MAX_SENSORS as c_int;
-    let devices: Vec<OniDeviceInfo> = unsafe {
+    let devices: &[OniDeviceInfo] = unsafe {
         oniGetDeviceList(&mut pointer, &mut count);
         assert!(!pointer.is_null());
-        slice::from_raw_parts(pointer, count as usize).to_vec()
+        slice::from_raw_parts(pointer, count as usize)
     };
-    let mapped = devices.into_iter().map(|info| info.into()).collect();
+    let mapped = devices.iter().map(|&info| info.into()).collect();
     unsafe { oniReleaseDeviceList(pointer); }
     mapped
 }
