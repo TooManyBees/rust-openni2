@@ -9,7 +9,7 @@ use super::bytes_per_pixel;
 pub struct Stream<'device> {
     device_handle: &'device OniDeviceHandle,
     stream_handle: OniStreamHandle,
-    sensor_type: SensorType,
+    // sensor_type: SensorType,
 }
 
 impl<'device> Stream<'device> {
@@ -22,7 +22,7 @@ impl<'device> Stream<'device> {
             Status::Ok => Ok(Stream {
                 device_handle: device_handle,
                 stream_handle: stream_handle,
-                sensor_type: sensor_type,
+                // sensor_type: sensor_type,
             }),
             _ => Err(status)
         }
