@@ -19,6 +19,7 @@ pub use types::{
     VideoMode,
 };
 pub use device::{Device, DeviceInfo};
+pub use openni2_sys::OniStreamHandle;
 
 pub fn init(major: c_int, minor: c_int) -> Status {
     unsafe { oniInitialize(major * 1000 + minor) }.into()

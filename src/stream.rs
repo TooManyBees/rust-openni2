@@ -210,6 +210,28 @@ impl<'device> Stream<'device> {
             .expect("couldn't check video format of stream before reading");
         StreamReader { handle: &self.stream_handle, pixel_format: video_format.pixel_format }
     }
+
+    pub fn listener<'cookie, T>(&self, callback: OniNewFrameCallback, cookie: &'cookie mut T) -> Result<StreamListener, Status> {
+        let mut callback_handle: OniCallbackHandle = ptr::null_mut();
+        let status = unsafe {
+            oniStreamRegisterNewFrameCallback(
+                self.stream_handle,
+                callback,
+                cookie as *mut _ as *mut c_void,
+                &mut callback_handle,
+            )
+        }.into();
+        if let Status::Ok = status {
+            Ok(StreamListener {
+                stream_handle: &self.stream_handle,
+                callback_handle,
+                // callback,
+                _cookie_lifetime: PhantomData,
+            })
+        } else {
+            Err(status)
+        }
+    }
 }
 
 impl<'device> fmt::Debug for Stream<'device> {
@@ -247,3 +269,25 @@ impl<'stream> StreamReader<'stream> {
         bytes_per_pixel(self.pixel_format)
     }
 }
+
+pub struct StreamListener<'stream, 'cookie> {
+    stream_handle: &'stream OniStreamHandle,
+    callback_handle: OniCallbackHandle,
+    // callback: OniNewFrameCallback,
+    _cookie_lifetime: PhantomData<&'cookie ()>,
+}
+
+impl<'stream, 'cookie> Drop for StreamListener<'stream, 'cookie> {
+    fn drop(&mut self) {
+        unsafe {
+            oniStreamUnregisterNewFrameCallback(
+                *self.stream_handle,
+                self.callback_handle,
+            );
+        }
+    }
+}
+
+// TODO: oniStreamRegisterNewFrameCallback
+// TODO: oniStreamUnregisterNewFrameCallback
+// TODO: oniStreamSetFrameBuffersAllocator
