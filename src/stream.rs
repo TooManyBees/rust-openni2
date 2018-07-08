@@ -205,7 +205,31 @@ impl<'device> Stream<'device> {
     //     res == 1
     // }
 
-    pub fn reader(&mut self /*, pixel_format: PixelFormat */) -> StreamReader {
+    pub fn depth_to_world(&self, depth: (f32, f32, f32)) -> Result<(f32, f32, f32), Status> {
+        // TODO: assert this is a depth stream
+        let mut result = (0.0, 0.0, 0.0);
+        let status = unsafe { oniCoordinateConverterDepthToWorld(self.stream_handle, depth.0, depth.1, depth.2, &mut result.0, &mut result.1, &mut result.2) }.into();
+        if let Status::Ok = status {
+            Ok(result)
+        } else {
+            Err(status)
+        }
+    }
+
+    pub fn world_to_depth(&self, world: (f32, f32, f32)) -> Result<(f32, f32, f32), Status> {
+        // TODO: assert this is a depth stream
+        let mut result = (0.0, 0.0, 0.0);
+        let status = unsafe { oniCoordinateConverterWorldToDepth(self.stream_handle, world.0, world.1, world.2, &mut result.0, &mut result.1, &mut result.2) }.into();
+        if let Status::Ok = status {
+            Ok(result)
+        } else {
+            Err(status)
+        }
+    }
+
+    // todo: depth to color (requires 2 streams)
+
+    pub fn reader(&mut self) -> StreamReader {
         let video_format = self.get_video_mode()
             .expect("couldn't check video format of stream before reading");
         StreamReader { handle: &self.stream_handle, pixel_format: video_format.pixel_format }
@@ -244,7 +268,7 @@ impl<'device> Drop for Stream<'device> {
     fn drop(&mut self) {
         // oniStreamDestroy doesn't return a status code :/
         unsafe { oniStreamDestroy(self.stream_handle) };
-        mem::forget(self.stream_handle);
+        mem::forget(self.stream_handle); // TODO: needed?
     }
 }
 
