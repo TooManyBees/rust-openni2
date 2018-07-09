@@ -223,7 +223,7 @@ pub struct SensorInfo {
 
 macro_rules! isPixel {
     ($($in:ty),+) => (
-        pub trait Pixel: Copy {}
+        pub trait Pixel: Copy + fmt::Debug {}
         $(impl Pixel for $in {})+
     )
 }

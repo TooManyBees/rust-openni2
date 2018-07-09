@@ -12,5 +12,8 @@ Still feeling out a comfortable API that conforms to Rust's ergonomics.
 
 # Examples
 
+[`examples/data_dump.rs`](examples/data_dump.rs) demonstrates interrogating
+devices and streams about their properties, as well as blocking for new frames.
+
 [`examples/closest_point.rs`](examples/closest_point.rs) demonstrates event-based
 callbacks, and finding the closest point in a depth map.

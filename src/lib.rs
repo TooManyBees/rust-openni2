@@ -22,7 +22,7 @@ pub use types::{
 pub use device::{Device, DeviceInfo};
 pub use stream::{Stream, StreamListener, StreamReader};
 pub use frame::{Frame};
-pub use openni2_sys::OniDepthPixel;
+pub use openni2_sys::{OniRGB888Pixel, OniDepthPixel, OniGrayscale16Pixel};
 
 pub fn init(major: c_int, minor: c_int) -> Status {
     unsafe { oniInitialize(major * 1000 + minor) }.into()
