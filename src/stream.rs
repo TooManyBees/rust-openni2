@@ -4,16 +4,17 @@ use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
 use frame::Frame;
-use types::{Status, SensorType, PixelFormat, VideoMode, SensorInfo};
-use super::bytes_per_pixel;
+use types::{Status, SensorType, PixelFormat, VideoMode, SensorInfo, Pixel};
+// use super::bytes_per_pixel;
 
-pub struct Stream<'device> {
+pub struct Stream<'device, P: Pixel> {
     device_handle: &'device OniDeviceHandle,
     stream_handle: OniStreamHandle,
     sensor_type: SensorType,
+    _pixel_type: PhantomData<P>,
 }
 
-impl<'device> Stream<'device> {
+impl<'device, P: Pixel> Stream<'device, P> {
     pub fn create(device_handle: &'device OniDeviceHandle, sensor_type: SensorType) -> Result<Self, Status> {
         let mut stream_handle: OniStreamHandle = ptr::null_mut();
         let status = unsafe {
@@ -21,9 +22,10 @@ impl<'device> Stream<'device> {
         }.into();
         match status {
             Status::Ok => Ok(Stream {
-                device_handle: device_handle,
-                stream_handle: stream_handle,
-                sensor_type: sensor_type,
+                device_handle,
+                stream_handle,
+                sensor_type,
+                _pixel_type: PhantomData,
             }),
             _ => Err(status)
         }
@@ -229,14 +231,14 @@ impl<'device> Stream<'device> {
 
     // todo: depth to color (requires 2 streams)
 
-    pub fn reader(&self) -> StreamReader {
-        let video_format = self.get_video_mode()
-            .expect("couldn't check video format of stream before reading");
-        StreamReader { handle: &self.stream_handle, pixel_format: video_format.pixel_format }
+    pub fn reader(&self) -> StreamReader<P> {
+        // let video_format = self.get_video_mode()
+        //     .expect("couldn't check video format of stream before reading");
+        StreamReader { handle: &self.stream_handle, _pixel_type: PhantomData::<P> }
     }
 
     // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
-    pub fn listener<F: FnMut(&StreamReader)>(&self, mut callback: F) -> Result<StreamListener, Status> {
+    pub fn listener<F: FnMut(&StreamReader<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
         extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
@@ -262,6 +264,7 @@ impl<'device> Stream<'device> {
                 stream_handle: &self.stream_handle,
                 callback_handle,
                 // closure_ptr,
+                _pixel_type: PhantomData::<P>
             })
         } else {
             Err(status)
@@ -269,13 +272,13 @@ impl<'device> Stream<'device> {
     }
 }
 
-impl<'device> fmt::Debug for Stream<'device> {
+impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Stream {{ device_handle: OniDeviceHandle({:p}), stream_handle: {:p} }}", self.device_handle, &self.stream_handle)
     }
 }
 
-impl<'device> Drop for Stream<'device> {
+impl<'device, P: Pixel> Drop for Stream<'device, P> {
     fn drop(&mut self) {
         // oniStreamDestroy doesn't return a status code :/
         unsafe { oniStreamDestroy(self.stream_handle) };
@@ -283,13 +286,14 @@ impl<'device> Drop for Stream<'device> {
     }
 }
 
-pub struct StreamReader<'stream> {
+pub struct StreamReader<'stream, P: Pixel> {
     handle: &'stream OniStreamHandle,
-    pixel_format: PixelFormat,
+    // pixel_format: PixelFormat,
+    _pixel_type: PhantomData<P>,
 }
 
-impl<'stream> StreamReader<'stream> {
-    pub fn read(&self) -> Frame<'stream> {
+impl<'stream, P: Pixel> StreamReader<'stream, P> {
+    pub fn read(&self) -> Frame<'stream, P> {
         let mut pointer = ptr::null_mut();
         let status = unsafe { oniStreamReadFrame(*self.handle, &mut pointer) }.into();
         match status {
@@ -300,18 +304,19 @@ impl<'stream> StreamReader<'stream> {
         }
     }
 
-    pub fn bytes_per_pixel(&self) -> usize {
-        bytes_per_pixel(self.pixel_format)
-    }
+    // pub fn bytes_per_pixel(&self) -> usize {
+    //     bytes_per_pixel(self.pixel_format)
+    // }
 }
 
-pub struct StreamListener<'stream> {
+pub struct StreamListener<'stream, P: Pixel> {
     stream_handle: &'stream OniStreamHandle,
     callback_handle: OniCallbackHandle,
     // closure_ptr: *mut c_void,
+    _pixel_type: PhantomData<P>,
 }
 
-impl<'stream> Drop for StreamListener<'stream> {
+impl<'stream, P: Pixel> Drop for StreamListener<'stream, P> {
     fn drop(&mut self) {
         unsafe {
             oniStreamUnregisterNewFrameCallback(

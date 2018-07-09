@@ -220,3 +220,11 @@ pub struct SensorInfo {
     pub sensor_type: SensorType,
     pub video_modes: Vec<VideoMode>,
 }
+
+macro_rules! isPixel {
+    ($($in:ty),+) => (
+        pub trait Pixel: Copy {}
+        $(impl Pixel for $in {})+
+    )
+}
+isPixel!(OniDepthPixel, /*OniGrayscale16Pixel,*/ OniGrayscale8Pixel, OniRGB888Pixel, OniYUV422DoublePixel);

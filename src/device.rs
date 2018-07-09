@@ -3,7 +3,7 @@ use std::{ptr, fmt, mem, slice};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo};
+use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo, Pixel};
 use stream::Stream;
 
 pub struct Device {
@@ -63,7 +63,7 @@ impl Device {
         }
     }
 
-    pub fn create_stream(&self, sensor_type: SensorType) -> Result<Stream, Status> {
+    pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
         Stream::create(&self.handle, sensor_type)
     }
 
