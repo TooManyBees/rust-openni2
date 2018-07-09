@@ -1,13 +1,10 @@
 extern crate openni2;
 
-use openni2::{Status, OniStreamHandle};
-use std::os::raw::c_void;
-use std::{thread, time, ptr};
+use openni2::{Status, StreamReader};
+use std::{thread, time};
 
-unsafe extern "C" fn callback_function(
-    _stream: OniStreamHandle,
-    _cookie: *mut c_void) {
-    println!("callback!");
+fn callback(reader: &StreamReader) {
+    println!("graceful! {:?}", reader.read());
 }
 
 fn main() {
@@ -18,9 +15,7 @@ fn main() {
     match d.open() {
         Status::Ok => {
             if let Ok(mut stream) = d.create_stream(openni2::SensorType::COLOR) {
-                let ptr: unsafe extern "C" fn(OniStreamHandle, *mut c_void) -> () = callback_function;
-                let callback = Some(ptr);
-                let listener = stream.listener(callback, &mut ptr::null_mut() as &mut *mut i32);
+                let listener = stream.listener(callback);
                 stream.start();
 
                 let one_second = time::Duration::from_millis(1000);

@@ -229,19 +229,31 @@ impl<'device> Stream<'device> {
 
     // todo: depth to color (requires 2 streams)
 
-    pub fn reader(&mut self) -> StreamReader {
+    pub fn reader(&self) -> StreamReader {
         let video_format = self.get_video_mode()
             .expect("couldn't check video format of stream before reading");
         StreamReader { handle: &self.stream_handle, pixel_format: video_format.pixel_format }
     }
 
-    pub fn listener<'cookie, T>(&self, callback: OniNewFrameCallback, cookie: &'cookie mut T) -> Result<StreamListener, Status> {
+    // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
+    pub fn listener<F: FnMut(&StreamReader)>(&self, mut callback: F) -> Result<StreamListener, Status> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
+
+        extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
+            let closure: &mut Box<FnMut()> = unsafe { mem::transmute(cookie) };
+            closure();
+        }
+
+        let reader = self.reader();
+        let closure: Box<Box<FnMut()>> = Box::new(Box::new(move || {
+            callback(&reader);
+        }));
+
         let status = unsafe {
             oniStreamRegisterNewFrameCallback(
                 self.stream_handle,
-                callback,
-                cookie as *mut _ as *mut c_void,
+                Some(callback_wrapper),
+                Box::into_raw(closure) as *mut _,
                 &mut callback_handle,
             )
         }.into();
@@ -249,8 +261,7 @@ impl<'device> Stream<'device> {
             Ok(StreamListener {
                 stream_handle: &self.stream_handle,
                 callback_handle,
-                // callback,
-                _cookie_lifetime: PhantomData,
+                // closure_ptr,
             })
         } else {
             Err(status)
@@ -294,14 +305,13 @@ impl<'stream> StreamReader<'stream> {
     }
 }
 
-pub struct StreamListener<'stream, 'cookie> {
+pub struct StreamListener<'stream> {
     stream_handle: &'stream OniStreamHandle,
     callback_handle: OniCallbackHandle,
-    // callback: OniNewFrameCallback,
-    _cookie_lifetime: PhantomData<&'cookie ()>,
+    // closure_ptr: *mut c_void,
 }
 
-impl<'stream, 'cookie> Drop for StreamListener<'stream, 'cookie> {
+impl<'stream> Drop for StreamListener<'stream> {
     fn drop(&mut self) {
         unsafe {
             oniStreamUnregisterNewFrameCallback(
@@ -309,9 +319,8 @@ impl<'stream, 'cookie> Drop for StreamListener<'stream, 'cookie> {
                 self.callback_handle,
             );
         }
+        // let _: Box<Box<FnMut()>> = unsafe { Box::from_raw(self.closure_ptr as *mut _) };
     }
 }
 
-// TODO: oniStreamRegisterNewFrameCallback
-// TODO: oniStreamUnregisterNewFrameCallback
 // TODO: oniStreamSetFrameBuffersAllocator
