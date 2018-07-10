@@ -2,7 +2,7 @@ use openni2_sys::*;
 use std::marker::PhantomData;
 use super::bytes_per_pixel;
 use types::{VideoMode, Pixel};
-use std::slice;
+use std::{mem, slice};
 
 #[derive(Debug)]
 pub struct Frame<'a, T: Pixel> {
@@ -26,7 +26,6 @@ impl<'a, T: Pixel> Frame<'a, T> {
         }
     }
 
-    // FIXME: don't return private OniVideoMode
     pub fn video_mode(&self) -> VideoMode {
         self.oni_frame.videoMode.into()
     }
@@ -38,7 +37,10 @@ impl<'a, T: Pixel> Frame<'a, T> {
 
     pub fn pixels(&self) -> &[T] {
         let pixel_size = bytes_per_pixel(self.oni_frame.videoMode.pixelFormat.into());
-        let num_pixels = (self.oni_frame.width * self.oni_frame.height) as usize;
+        let type_param_size = mem::size_of::<T>();
+        assert_eq!(type_param_size, pixel_size, "Size of Frame::pixels() type parameter ({}) is different than pixel size reported by OpenNI2 ({}). If this method worked before, you may have changed the video mode of a stream without unregistering an existing callback.", type_param_size, pixel_size);
+
+        let num_pixels = self.oni_frame.width as usize * self.oni_frame.height as usize;
         assert_eq!(self.oni_frame.dataSize as usize, num_pixels * pixel_size);
         unsafe {
             slice::from_raw_parts(self.oni_frame.data as *const T, num_pixels)

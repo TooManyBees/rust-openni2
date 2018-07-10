@@ -86,6 +86,16 @@ pub fn set_console_log(state: bool) -> Status {
 }
 
 pub fn bytes_per_pixel(format: PixelFormat) -> usize {
+    // FIXME: YUV modes will break the runtime assertions that
+    // the expected type param for Frame::pixels() matches the
+    // size of the actual array element. OpenNI2 reports that
+    // YUV pixels are 2 bytes which they are *but* the struct
+    // that holds them is 4 bytes and represents 2 pixels.
+    //
+    // Must decide if we want to "lie" and return 4 from this
+    // function for YUV types (which will not conform to
+    // `oniFormatBytesPerPixel` logic) or if we want to change
+    // the assertions.
     match format {
         PixelFormat::DEPTH_1_MM => 2,
         PixelFormat::DEPTH_100_UM => 2,

@@ -5,7 +5,7 @@ use std::{ptr, fmt, mem, slice};
 use openni2_sys::*;
 use frame::Frame;
 use types::{Status, SensorType, VideoMode, SensorInfo, Pixel};
-// use super::bytes_per_pixel;
+use super::bytes_per_pixel;
 
 pub struct Stream<'device, P: Pixel> {
     device_handle: &'device OniDeviceHandle,
@@ -241,6 +241,17 @@ impl<'device, P: Pixel> Stream<'device, P> {
     pub fn listener<F: FnMut(&StreamReader<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
+        // Ensure that pixel type P matches the pixel format that the
+        // current video mode will return. Compile-time typing is possible
+        // but is extremely impractical considering that a stream's video
+        // mode can be changed.
+        let type_param_size = mem::size_of::<P>();
+        let pixel_size = {
+            let video_mode = self.get_video_mode().expect("Couldn't fetch stream's video mode to assert that callback accepts a matching pixel format.");
+            bytes_per_pixel(video_mode.pixel_format)
+        };
+        assert_eq!(type_param_size, pixel_size, "Size of callback's type parameter ({}) is different than the stream's pixel size reported by OpenNI2 ({}). Did you register the wrong callback on a stream?", type_param_size, pixel_size);
+
         extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
             let closure: &mut Box<FnMut()> = unsafe { mem::transmute(cookie) };
             closure();
@@ -264,7 +275,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
                 stream_handle: &self.stream_handle,
                 callback_handle,
                 // closure_ptr,
-                _pixel_type: PhantomData::<P>
+                _pixel_type: PhantomData
             })
         } else {
             Err(status)
