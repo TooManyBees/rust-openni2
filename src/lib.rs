@@ -18,11 +18,14 @@ pub use types::{
     Timeout,
     VideoMode,
     Pixel,
+    MyPixel,
+    ColorRGB888,
+    Depth1MM,
 };
 pub use device::{Device, DeviceInfo};
 pub use stream::{Stream, StreamListener, StreamReader};
 pub use frame::{Frame};
-pub use openni2_sys::{OniRGB888Pixel, OniDepthPixel, OniGrayscale16Pixel};
+pub use openni2_sys::{OniRGB888Pixel, OniDepthPixel, OniGrayscale16Pixel, OniGrayscale8Pixel};
 
 pub fn init(major: c_int, minor: c_int) -> Status {
     unsafe { oniInitialize(major * 1000 + minor) }.into()

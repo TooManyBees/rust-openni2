@@ -63,6 +63,44 @@ impl From<c_int> for SensorType {
     }
 }
 
+macro_rules! isMyPixel {
+    ($($in:ident => ($px:ty, $oni_pixel:tt, $oni_sensor:tt)),+) => (
+        pub trait MyPixel: Copy + Clone + fmt::Debug {
+            type PixelType: Copy + Clone + fmt::Debug;
+            fn oni_pixel_format() -> c_int;
+            fn oni_sensor_type() -> c_int;
+        }
+        $(
+            #[derive(Debug, Copy, Clone)]
+            pub struct $in();
+            impl MyPixel for $in {
+                type PixelType = $px;
+
+                fn oni_pixel_format() -> c_int {
+                    $oni_pixel
+                }
+
+                fn oni_sensor_type() -> c_int {
+                    $oni_sensor
+                }
+            }
+        )+
+    )
+}
+isMyPixel!(
+    ColorRGB888 => (OniRGB888Pixel, ONI_PIXEL_FORMAT_RGB888, ONI_SENSOR_COLOR),
+    ColorGrayscale8 => (OniGrayscale8Pixel, ONI_PIXEL_FORMAT_GRAY8, ONI_SENSOR_COLOR),
+    ColorYUV422 => (OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUV422, ONI_SENSOR_COLOR),
+    ColorYUYV => (OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUYV, ONI_SENSOR_COLOR), // FIXME: Is this right?
+    Jpeg => (u8, ONI_PIXEL_FORMAT_JPEG, ONI_SENSOR_COLOR),
+    IrRGB888 => (OniRGB888Pixel, ONI_PIXEL_FORMAT_RGB888, ONI_SENSOR_IR),
+    IrGrayscale16 => (OniGrayscale16Pixel, ONI_PIXEL_FORMAT_GRAY16, ONI_SENSOR_IR),
+    Depth1MM => (OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_1_MM, ONI_SENSOR_DEPTH),
+    Depth100UM => (OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_100_UM, ONI_SENSOR_DEPTH),
+    Shift92 => (OniDepthPixel, ONI_PIXEL_FORMAT_SHIFT_9_2, ONI_SENSOR_DEPTH),
+    Shift93 => (OniDepthPixel, ONI_PIXEL_FORMAT_SHIFT_9_3, ONI_SENSOR_DEPTH)
+);
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]

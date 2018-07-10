@@ -3,7 +3,7 @@ use std::{ptr, fmt, mem, slice};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo, Pixel};
+use types::{Status, ImageRegistrationMode, VideoMode, SensorInfo, MyPixel};
 use stream::Stream;
 
 pub struct Device {
@@ -41,9 +41,9 @@ impl Device {
         }
     }
 
-    pub fn get_sensor_info(&self, sensor_type: SensorType) -> Option<SensorInfo> {
+    pub fn get_sensor_info<P: MyPixel>(&self) -> Option<SensorInfo> {
         unsafe {
-            let ptr: *const OniSensorInfo = oniDeviceGetSensorInfo(self.handle, sensor_type as i32);
+            let ptr: *const OniSensorInfo = oniDeviceGetSensorInfo(self.handle, P::oni_sensor_type());
             if ptr.is_null() {
                 None
             } else {
@@ -56,15 +56,15 @@ impl Device {
                     .collect::<Vec<VideoMode>>();
                 mem::forget(info); // i think?
                 Some(SensorInfo {
-                    sensor_type: sensor_type,
+                    sensor_type: P::oni_sensor_type().into(),
                     video_modes: video_modes,
                 })
             }
         }
     }
 
-    pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
-        Stream::create(&self.handle, sensor_type)
+    pub fn create_stream<P: MyPixel>(&self) -> Result<Stream<P>, Status> {
+        Stream::create(&self.handle)
     }
 
     pub fn color_depth_sync(&self) -> bool {

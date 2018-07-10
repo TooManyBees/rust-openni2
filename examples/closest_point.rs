@@ -1,6 +1,6 @@
 extern crate openni2;
 
-use openni2::{Status, StreamReader};
+use openni2::{Status, StreamReader, Depth1MM};
 use std::{thread, time};
 use std::u16;
 
@@ -27,7 +27,7 @@ fn main() {
     let mut d = openni2::Device::new();
     match d.open() {
         Status::Ok => {
-            if let Ok(mut stream) = d.create_stream(openni2::SensorType::DEPTH) {
+            if let Ok(mut stream) = d.create_stream::<Depth1MM>() {
                 let _listener = stream.listener(callback);
                 stream.start();
 

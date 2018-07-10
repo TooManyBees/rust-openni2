@@ -4,28 +4,26 @@ use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
 use frame::Frame;
-use types::{Status, SensorType, VideoMode, SensorInfo, Pixel};
+use types::{Status, VideoMode, SensorInfo, MyPixel};
 // use super::bytes_per_pixel;
 
-pub struct Stream<'device, P: Pixel> {
+pub struct Stream<'device, P: MyPixel> {
     device_handle: &'device OniDeviceHandle,
     stream_handle: OniStreamHandle,
-    sensor_type: SensorType,
-    _pixel_type: PhantomData<P>,
+    _sensor_type: PhantomData<P>,
 }
 
-impl<'device, P: Pixel> Stream<'device, P> {
-    pub fn create(device_handle: &'device OniDeviceHandle, sensor_type: SensorType) -> Result<Self, Status> {
+impl<'device, P: MyPixel> Stream<'device, P> {
+    pub fn create(device_handle: &'device OniDeviceHandle) -> Result<Self, Status> {
         let mut stream_handle: OniStreamHandle = ptr::null_mut();
         let status = unsafe {
-            oniDeviceCreateStream(*device_handle, sensor_type as i32, &mut stream_handle)
+            oniDeviceCreateStream(*device_handle, P::oni_sensor_type(), &mut stream_handle)
         }.into();
         match status {
             Status::Ok => Ok(Stream {
                 device_handle,
                 stream_handle,
-                sensor_type,
-                _pixel_type: PhantomData,
+                _sensor_type: PhantomData,
             }),
             _ => Err(status)
         }
@@ -195,7 +193,6 @@ impl<'device, P: Pixel> Stream<'device, P> {
                     .collect::<Vec<VideoMode>>();
                 mem::forget(info); // i think?
                 Some(SensorInfo {
-                    sensor_type: self.sensor_type,
                     video_modes: video_modes,
                 })
             }
@@ -231,14 +228,14 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
     // todo: depth to color (requires 2 streams)
 
-    pub fn reader(&self) -> StreamReader<P> {
+    pub fn reader(&self) -> StreamReader<P::PixelType> {
         // let video_format = self.get_video_mode()
         //     .expect("couldn't check video format of stream before reading");
-        StreamReader { handle: &self.stream_handle, _pixel_type: PhantomData::<P> }
+        StreamReader { handle: &self.stream_handle, _pixel_type: PhantomData }
     }
 
     // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
-    pub fn listener<F: FnMut(&StreamReader<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
+    pub fn listener<F: FnMut(&StreamReader<P::PixelType>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
         extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
@@ -264,7 +261,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
                 stream_handle: &self.stream_handle,
                 callback_handle,
                 // closure_ptr,
-                _pixel_type: PhantomData::<P>
+                _pixel_type: PhantomData
             })
         } else {
             Err(status)
@@ -272,13 +269,13 @@ impl<'device, P: Pixel> Stream<'device, P> {
     }
 }
 
-impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
+impl<'device, P: MyPixel> fmt::Debug for Stream<'device, P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Stream {{ device_handle: OniDeviceHandle({:p}), stream_handle: {:p} }}", self.device_handle, &self.stream_handle)
     }
 }
 
-impl<'device, P: Pixel> Drop for Stream<'device, P> {
+impl<'device, P: MyPixel> Drop for Stream<'device, P> {
     fn drop(&mut self) {
         // oniStreamDestroy doesn't return a status code :/
         unsafe { oniStreamDestroy(self.stream_handle) };
@@ -286,13 +283,13 @@ impl<'device, P: Pixel> Drop for Stream<'device, P> {
     }
 }
 
-pub struct StreamReader<'stream, P: Pixel> {
+pub struct StreamReader<'stream, P: Copy> {
     handle: &'stream OniStreamHandle,
     // pixel_format: PixelFormat,
     _pixel_type: PhantomData<P>,
 }
 
-impl<'stream, P: Pixel> StreamReader<'stream, P> {
+impl<'stream, P: Copy> StreamReader<'stream, P> {
     pub fn read(&self) -> Frame<'stream, P> {
         let mut pointer = ptr::null_mut();
         let status = unsafe { oniStreamReadFrame(*self.handle, &mut pointer) }.into();
@@ -309,14 +306,14 @@ impl<'stream, P: Pixel> StreamReader<'stream, P> {
     // }
 }
 
-pub struct StreamListener<'stream, P: Pixel> {
+pub struct StreamListener<'stream, P: Copy> {
     stream_handle: &'stream OniStreamHandle,
     callback_handle: OniCallbackHandle,
     // closure_ptr: *mut c_void,
     _pixel_type: PhantomData<P>,
 }
 
-impl<'stream, P: Pixel> Drop for StreamListener<'stream, P> {
+impl<'stream, P: Copy> Drop for StreamListener<'stream, P> {
     fn drop(&mut self) {
         unsafe {
             oniStreamUnregisterNewFrameCallback(
