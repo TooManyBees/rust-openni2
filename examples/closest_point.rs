@@ -24,10 +24,9 @@ fn main() {
     let version = openni2::get_version();
     openni2::init(version.major, version.minor);
 
-    let mut d = openni2::Device::new();
-    match d.open() {
-        Status::Ok => {
-            if let Ok(mut stream) = d.create_stream(openni2::SensorType::DEPTH) {
+    match openni2::Device::open_default() {
+        Ok(device) => {
+            if let Ok(mut stream) = device.create_stream(openni2::SensorType::DEPTH) {
                 let _listener = stream.listener(callback);
                 stream.start();
 

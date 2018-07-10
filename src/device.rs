@@ -7,7 +7,7 @@ use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo, Pi
 use stream::Stream;
 
 pub struct Device {
-    handle: OniDeviceHandle, // TODO: Option<OniDeviceHandle>
+    handle: OniDeviceHandle,
 }
 
 impl fmt::Debug for Device {
@@ -17,14 +17,32 @@ impl fmt::Debug for Device {
 }
 
 impl Device {
-    pub fn new() -> Self {
-        Device {
-            handle: ptr::null_mut(),
+    pub fn open_default() -> Result<Self, Status> {
+        Self::open(None)
+    }
+
+    pub fn open_uri(uri: &str) -> Result<Self, Status> {
+        let cstring = CString::new(uri);
+        match cstring {
+            Ok(cstring) => Self::open(Some(cstring)),
+            Err(_) => Err(Status::Error(format!("Uri `{}` was not a valid CString", uri))),
         }
     }
 
-    pub fn open(&mut self) -> Status {
-        unsafe { oniDeviceOpen(ptr::null(), &mut self.handle ) }.into()
+    fn open(uri: Option<CString>) -> Result<Self, Status> {
+        let mut handle = ptr::null_mut();
+        // Careful not to `match uri` without borrowing,
+        // the cstring will get moved out of the Option
+        // and dropped as a dangling pointer
+        let uri_ptr = match &uri {
+            Some(cstring) => cstring.as_ptr(),
+            None => ptr::null(),
+        };
+        let status = unsafe { oniDeviceOpen(uri_ptr, &mut handle ) }.into();
+        match status {
+            Status::Ok => Ok(Device { handle }),
+            _ => Err(status),
+        }
     }
 
     pub fn info(&self) -> DeviceInfo {
@@ -170,11 +188,11 @@ impl Drop for Device {
 
 #[derive(Debug)]
 pub struct DeviceInfo {
-    uri: String,
-    vendor: String,
-    name: String,
-    usb_vendor_id: u16,
-    usb_product_id: u16,
+    pub uri: String,
+    pub vendor: String,
+    pub name: String,
+    pub usb_vendor_id: u16,
+    pub usb_product_id: u16,
 }
 
 impl From<OniDeviceInfo> for DeviceInfo {

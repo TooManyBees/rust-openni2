@@ -1,5 +1,6 @@
 extern crate openni2;
 use openni2::{
+    Status,
     SensorType,
     Stream,
     OniRGB888Pixel,
@@ -47,39 +48,40 @@ fn main() {
 
     // println!("{:?}", openni2::get_device_list());
 
-    let mut d = openni2::Device::new();
-    match d.open() {
-        openni2::Status::Ok => {
-            println!("{:?}", d.info());
+    // Try openni2::Device::open_uri("uri") with a uri string returned
+    // from openni2::get_device_list()
+    match openni2::Device::open_default() {
+        Ok(device) => {
+            println!("{:?}", device.info());
 
-            println!("Firmware Version: {:?}", d.get_firmware_version());
-            println!("Driver Version: {:?}", d.get_driver_version());
-            println!("Hardware Version: {:?}", d.get_hardware_version());
-            println!("Serial No: {:?}", d.get_serial_number());
+            println!("Firmware Version: {:?}", device.get_firmware_version());
+            println!("Driver Version: {:?}", device.get_driver_version());
+            println!("Hardware Version: {:?}", device.get_hardware_version());
+            println!("Serial No: {:?}", device.get_serial_number());
 
-            if let Some(sensor_info) = d.get_sensor_info(SensorType::COLOR) {
+            if let Some(sensor_info) = device.get_sensor_info(SensorType::COLOR) {
                 println!("{:#?}", sensor_info);
-                if let Ok(mut stream) = d.create_stream::<OniRGB888Pixel>(SensorType::COLOR) {
+                if let Ok(mut stream) = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR) {
                     interrogate_stream(&mut stream);
                 }
             }
 
-            if let Some(sensor_info) = d.get_sensor_info(SensorType::DEPTH) {
+            if let Some(sensor_info) = device.get_sensor_info(SensorType::DEPTH) {
                 println!("{:#?}", sensor_info);
-                if let Ok(mut stream) = d.create_stream::<OniDepthPixel>(SensorType::DEPTH) {
+                if let Ok(mut stream) = device.create_stream::<OniDepthPixel>(SensorType::DEPTH) {
                     interrogate_stream(&mut stream);
                 }
             }
 
-            if let Some(sensor_info) = d.get_sensor_info(SensorType::IR) {
+            if let Some(sensor_info) = device.get_sensor_info(SensorType::IR) {
                 println!("{:#?}", sensor_info);
-                if let Ok(mut stream) = d.create_stream::<OniGrayscale16Pixel>(SensorType::IR) {
+                if let Ok(mut stream) = device.create_stream::<OniGrayscale16Pixel>(SensorType::IR) {
                     interrogate_stream(&mut stream);
                 }
             }
         },
-        openni2::Status::Error(s) => println!("{}", s),
-        e @ _ => println!("{:?}", e),
+        Err(Status::Error(s)) => println!("{}", s),
+        Err(e) => println!("{:?}", e),
     }
 
     openni2::shutdown();
