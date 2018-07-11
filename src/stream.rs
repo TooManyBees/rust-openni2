@@ -31,6 +31,10 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    pub fn sensor_type(&self) -> SensorType {
+        self.sensor_type
+    }
+
     pub fn start(&self) -> Status {
         unsafe { oniStreamStart(self.stream_handle) }.into()
     }
@@ -232,8 +236,6 @@ impl<'device, P: Pixel> Stream<'device, P> {
     // todo: depth to color (requires 2 streams)
 
     pub fn reader(&self) -> StreamReader<P> {
-        // let video_format = self.get_video_mode()
-        //     .expect("couldn't check video format of stream before reading");
         StreamReader { handle: &self.stream_handle, _pixel_type: PhantomData::<P> }
     }
 
@@ -299,7 +301,6 @@ impl<'device, P: Pixel> Drop for Stream<'device, P> {
 
 pub struct StreamReader<'stream, P: Pixel> {
     handle: &'stream OniStreamHandle,
-    // pixel_format: PixelFormat,
     _pixel_type: PhantomData<P>,
 }
 
@@ -338,5 +339,3 @@ impl<'stream, P: Pixel> Drop for StreamListener<'stream, P> {
         // let _: Box<Box<FnMut()>> = unsafe { Box::from_raw(self.closure_ptr as *mut _) };
     }
 }
-
-// TODO: oniStreamSetFrameBuffersAllocator

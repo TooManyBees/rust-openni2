@@ -1,15 +1,14 @@
 extern crate openni2;
 
-use openni2::{Status, StreamReader};
+use openni2::StreamReader;
 use std::{thread, time};
-use std::u16;
 
 fn callback(reader: &StreamReader<openni2::OniDepthPixel>) {
     let frame = reader.read();
     let px = frame.pixels();
     let closest = px.iter()
         .enumerate()
-        .fold((0u16, 0u16, u16::MAX), |closest, (n, &depth)| {
+        .fold((0u16, 0u16, ::std::u16::MAX), |closest, (n, &depth)| {
             let (x, y) = (n as u16 % frame.width, n as u16 / frame.width);
             if depth < closest.2 && depth != 0 {
                 (x, y, depth)
@@ -36,7 +35,7 @@ fn main() {
                 }
             }
         },
-        _ => println!("Couldn't open device :(")
+        Err(status) => println!("{}", status),
     }
 
     openni2::shutdown();

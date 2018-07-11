@@ -31,6 +31,22 @@ impl Status {
     }
 }
 
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let error_string = match self {
+            Status::Ok => "Ok",
+            Status::Error(s) => s,
+            Status::NotImplemented => "Not implemented",
+            Status::NotSupported => "Not supported",
+            Status::BadParameter => "Bad parameter",
+            Status::OutOfFlow => "Out of flow",
+            Status::NoDevice => "No device",
+            Status::TimeOut => "Timeout",
+        };
+        write!(f, "OpenNI2 error: {}", error_string)
+    }
+}
+
 impl From<c_int> for Status {
     fn from(i: c_int) -> Self {
         Status::from_int(i)

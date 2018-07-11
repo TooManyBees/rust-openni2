@@ -173,8 +173,6 @@ impl Device {
     pub fn is_image_registration_mode_supported(&self, mode: ImageRegistrationMode) -> bool {
         unsafe { oniDeviceIsImageRegistrationModeSupported(self.handle, mode as i32) != 0 }
     }
-
-
 }
 
 impl Drop for Device {

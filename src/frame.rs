@@ -30,11 +30,6 @@ impl<'a, T: Pixel> Frame<'a, T> {
         self.oni_frame.videoMode.into()
     }
 
-    pub fn inspect(&self) {
-        let num_bytes = unsafe { oniFormatBytesPerPixel(self.oni_frame.videoMode.pixelFormat) };
-        println!("{}", num_bytes);
-    }
-
     pub fn pixels(&self) -> &[T] {
         let pixel_size = bytes_per_pixel(self.oni_frame.videoMode.pixelFormat.into());
         let type_param_size = mem::size_of::<T>();
@@ -45,10 +40,6 @@ impl<'a, T: Pixel> Frame<'a, T> {
         unsafe {
             slice::from_raw_parts(self.oni_frame.data as *const T, num_pixels)
         }
-    }
-
-    pub fn pixels_owned(&self) -> Vec<T> {
-        self.pixels().to_vec()
     }
 }
 
