@@ -69,10 +69,7 @@ pub fn get_device_list() -> Vec<DeviceInfo> {
 
 pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_device_disconnected: &mut F2, on_device_state_changed: &mut F3) -> Result<DeviceCallbackHandle, Status>
     where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
-    let mut callback_handle: OniCallbackHandle = ptr::null_mut();
-
     unsafe extern "C" fn on_device_connected_wrapper(info: *const OniDeviceInfo, cookie: *mut c_void) {
-        println!("connected!");
         let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
         let device_info = (*info).into();
         (closures.on_device_connected)(device_info);
@@ -80,7 +77,6 @@ pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_de
     }
 
     unsafe extern "C" fn on_device_disconnected_wrapper(info: *const OniDeviceInfo, cookie: *mut c_void) {
-        println!("disconnected!");
         let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
         let device_info = (*info).into();
         (closures.on_device_disconnected)(device_info);
@@ -88,7 +84,6 @@ pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_de
     }
 
     unsafe extern "C" fn on_device_state_changed_wrapper(device_info: *const OniDeviceInfo, device_state: OniDeviceState, cookie: *mut c_void) {
-        println!("changed!");
         let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
         let device_info = (*device_info).into();
         let device_state = device_state.into();
@@ -108,6 +103,7 @@ pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_de
         deviceStateChanged: Some(on_device_state_changed_wrapper),
     };
 
+    let mut callback_handle: OniCallbackHandle = ptr::null_mut();
     let status = unsafe {
         oniRegisterDeviceCallbacks(&mut callbacks, Box::into_raw(closures) as *mut _, &mut callback_handle)
     }.into();
