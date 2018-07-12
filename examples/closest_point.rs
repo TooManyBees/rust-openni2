@@ -1,6 +1,6 @@
 extern crate openni2;
 
-use openni2::StreamReader;
+use openni2::{Status, StreamReader};
 use std::{thread, time};
 
 fn callback(reader: &StreamReader<openni2::OniDepthPixel>) {
@@ -19,24 +19,17 @@ fn callback(reader: &StreamReader<openni2::OniDepthPixel>) {
     println!("[{:-6} {:-6} {:-6}]", closest.0, closest.1, closest.2);
 }
 
-fn main() {
+fn main() -> Result<(), Status> {
     let version = openni2::get_version();
-    openni2::init(version.major, version.minor);
+    openni2::init(version.major, version.minor)?;
 
-    match openni2::Device::open_default() {
-        Ok(device) => {
-            if let Ok(mut stream) = device.create_stream(openni2::SensorType::DEPTH) {
-                let _listener = stream.listener(callback);
-                stream.start();
+    let device = openni2::Device::open_default()?;
+    let stream = device.create_stream(openni2::SensorType::DEPTH)?;
+    let _listener = stream.listener(callback)?;
+    stream.start();
 
-                let one_second = time::Duration::from_millis(1000);
-                loop {
-                    thread::sleep(one_second);
-                }
-            }
-        },
-        Err(status) => println!("{}", status),
+    let one_second = time::Duration::from_millis(1000);
+    loop {
+        thread::sleep(one_second);
     }
-
-    openni2::shutdown();
 }

@@ -48,9 +48,9 @@ fn dump_stream_data<P: Pixel>(stream: &Stream<P>) {
     println!("Gain: {:?}", stream.get_gain().ok());
 }
 
-fn main() {
+fn main() -> Result<(), Status> {
     let version = openni2::get_version();
-    openni2::init(version.major, version.minor);
+    openni2::init(version.major, version.minor)?;
 
     // openni2::set_console_log(true);
 
@@ -58,24 +58,20 @@ fn main() {
 
     // Try openni2::Device::open_uri("uri") with a uri string returned
     // from openni2::get_device_list()
-    match openni2::Device::open_default() {
-        Ok(device) => {
-            println!("{:?}", device.info());
+    let device = openni2::Device::open_default()?;
+    println!("{:?}", device.info());
 
-            println!("Firmware Version: {:?}", device.get_firmware_version());
-            println!("Driver Version: {:?}", device.get_driver_version());
-            println!("Hardware Version: {:?}", device.get_hardware_version());
-            println!("Serial No: {:?}", device.get_serial_number());
+    println!("Firmware Version: {:?}", device.get_firmware_version());
+    println!("Driver Version: {:?}", device.get_driver_version());
+    println!("Hardware Version: {:?}", device.get_hardware_version());
+    println!("Serial No: {:?}", device.get_serial_number());
 
-            interrogate_stream::<OniRGB888Pixel>(&device, SensorType::COLOR);
+    interrogate_stream::<OniRGB888Pixel>(&device, SensorType::COLOR);
 
-            interrogate_stream::<OniDepthPixel>(&device, SensorType::DEPTH);
+    interrogate_stream::<OniDepthPixel>(&device, SensorType::DEPTH);
 
-            interrogate_stream::<OniGrayscale16Pixel>(&device, SensorType::IR);
-        },
-        Err(Status::Error(s)) => println!("{}", s),
-        Err(e) => println!("{:?}", e),
-    }
+    interrogate_stream::<OniGrayscale16Pixel>(&device, SensorType::IR);
 
     openni2::shutdown();
+    Ok(())
 }

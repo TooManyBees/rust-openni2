@@ -30,8 +30,11 @@ pub use openni2_sys::{
     OniYUV422DoublePixel,
 };
 
-pub fn init(major: c_int, minor: c_int) -> Status {
-    unsafe { oniInitialize(major * 1000 + minor) }.into()
+pub fn init(major: c_int, minor: c_int) -> Result<(), Status> {
+    match unsafe { oniInitialize(major * 1000 + minor) }.into() {
+        Status::Ok => Ok(()),
+        error => Err(error),
+    }
 }
 
 pub fn shutdown() {

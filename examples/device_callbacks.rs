@@ -1,10 +1,10 @@
 extern crate openni2;
-use openni2::{register_device_callbacks, DeviceInfo, DeviceState};
+use openni2::{Status, DeviceInfo, DeviceState};
 use std::{thread, time};
 
-fn main() {
+fn main() -> Result<(), Status> {
     let version = openni2::get_version();
-    openni2::init(version.major, version.minor);
+    openni2::init(version.major, version.minor)?;
 
     let mut on_device_connect = |device_info: DeviceInfo| {
         println!("{} connected", device_info.uri);
@@ -18,11 +18,10 @@ fn main() {
         println!("{} changed state: {:?}", device_info.uri, state);
     };
 
-    if let Ok(_handle) = register_device_callbacks(&mut on_device_connect, &mut on_device_disconnect, &mut on_device_state_change) {
+    let _handle = openni2::register_device_callbacks(&mut on_device_connect, &mut on_device_disconnect, &mut on_device_state_change)?;
 
-        let one_second = time::Duration::from_millis(1000);
-        loop {
-            thread::sleep(one_second);
-        }
+    let one_second = time::Duration::from_millis(1000);
+    loop {
+        thread::sleep(one_second);
     }
 }
