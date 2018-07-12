@@ -41,6 +41,14 @@ impl<'a, T: Pixel> Frame<'a, T> {
             slice::from_raw_parts(self.oni_frame.data as *const T, num_pixels)
         }
     }
+
+    pub fn timestamp(&self) -> u64 {
+        self.oni_frame.timestamp
+    }
+
+    pub fn dimensions(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
 }
 
 // impl<'a> Drop for Frame<'a> {
