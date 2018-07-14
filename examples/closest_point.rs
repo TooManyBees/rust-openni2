@@ -1,3 +1,6 @@
+// Rust implementation of the OpenNI2 C++ sample
+// https://github.com/OpenNI/OpenNI2/blob/master/Samples/MWClosestPoint/MWClosestPoint.cpp
+// https://github.com/OpenNI/OpenNI2/blob/master/Samples/MWClosestPointApp/main.cpp
 extern crate openni2;
 
 use openni2::{Status, StreamReader};

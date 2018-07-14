@@ -117,10 +117,6 @@ pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_de
     }
 }
 
-// pub fn wait_for_any_stream() -> Status {
-
-// }
-
 pub fn set_console_log(state: bool) -> Status {
     let return_value = unsafe {
         if state {

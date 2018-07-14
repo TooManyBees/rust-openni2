@@ -132,6 +132,14 @@ impl Device {
         Ok(res == ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR)
     }
 
+    pub fn set_image_registration(&self, on: bool) -> Result<(), Status> {
+        self.set_property::<OniImageRegistrationMode>(
+            ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION,
+            if on { ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR } else { ONI_IMAGE_REGISTRATION_OFF },
+        )?;
+        Ok(())
+    }
+
     // DEVICE_PROPERTY_ERROR_STATE ??
 
     pub fn get_playback_speed(&self) -> Result<f32, Status> {
@@ -157,6 +165,22 @@ impl Device {
 
         match status {
             Status::Ok => Ok(data),
+            _ => Err(status),
+        }
+    }
+
+    fn set_property<T>(&self, property: OniDeviceProperty, value: T) -> Result<(), Status> {
+        let len = mem::size_of::<T>() as c_int;
+        let status = unsafe {
+            oniDeviceSetProperty(
+                self.handle,
+                property,
+                &value as *const T as *const _,
+                len,
+            )
+        }.into();
+        match status {
+            Status::Ok => Ok(()),
             _ => Err(status),
         }
     }
