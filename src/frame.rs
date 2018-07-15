@@ -26,8 +26,40 @@ impl<'a, T: Pixel> Frame<'a, T> {
         }
     }
 
+    pub fn timestamp(&self) -> u64 {
+        self.oni_frame.timestamp
+    }
+
+    pub fn index(&self) -> usize {
+        self.oni_frame.frameIndex as usize
+    }
+
+    pub fn width(&self) -> u16 {
+        self.width
+    }
+
+    pub fn height(&self) -> u16 {
+        self.height
+    }
+
     pub fn video_mode(&self) -> VideoMode {
         self.oni_frame.videoMode.into()
+    }
+
+    pub fn cropped(&self) -> bool {
+        self.oni_frame.croppingEnabled != 0
+    }
+
+    pub fn origin_x(&self) -> u16 {
+        self.oni_frame.cropOriginX as u16
+    }
+
+    pub fn origin_y(&self) -> u16 {
+        self.oni_frame.cropOriginY as u16
+    }
+
+    pub fn stride(&self) -> u16 {
+        self.oni_frame.stride as u16
     }
 
     pub fn pixels(&self) -> &[T] {
@@ -42,12 +74,12 @@ impl<'a, T: Pixel> Frame<'a, T> {
         }
     }
 
-    pub fn timestamp(&self) -> u64 {
-        self.oni_frame.timestamp
-    }
-
     pub fn dimensions(&self) -> (u16, u16) {
         (self.width, self.height)
+    }
+
+    pub fn inspect(&self) {
+        println!("{:?}", self.oni_frame);
     }
 }
 

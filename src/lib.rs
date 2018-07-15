@@ -20,7 +20,7 @@ pub use types::{
     Pixel,
 };
 pub use device::{Device, DeviceInfo};
-pub use stream::{Stream, StreamListener, StreamReader};
+pub use stream::{Stream, StreamListener, StreamReader, Cropping};
 pub use frame::Frame;
 pub use openni2_sys::{
     OniDepthPixel,

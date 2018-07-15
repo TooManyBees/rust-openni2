@@ -48,12 +48,38 @@ impl<'device, P: Pixel> Stream<'device, P> {
         res == 1
     }
 
-    pub fn get_cropping(&self) -> Result<OniCropping, Status> {
-        self.get_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING)
+    pub fn get_cropping(&self) -> Result<Option<Cropping>, Status> {
+        let oni_cropping = self.get_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING)?;
+        if oni_cropping.enabled > 0 {
+            Ok(Some(Cropping {
+                width: oni_cropping.width as u16,
+                height: oni_cropping.height as u16,
+                origin_x: oni_cropping.originX as u16,
+                origin_y: oni_cropping.originY as u16,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
-    pub fn set_cropping(&self, value: OniCropping) -> Result<(), Status> {
-        self.set_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING, value)
+    pub fn set_cropping(&self, value: Option<Cropping>) -> Result<(), Status> {
+        let oni_cropping = match value {
+            Some(cropping) => OniCropping {
+                enabled: 1,
+                width: cropping.width as c_int,
+                height: cropping.height as c_int,
+                originX: cropping.origin_x as c_int,
+                originY: cropping.origin_y as c_int,
+            },
+            None => OniCropping {
+                enabled: 0,
+                width: 0,
+                height: 0,
+                originX: 0,
+                originY: 0,
+            },
+        };
+        self.set_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING, oni_cropping)
     }
 
     pub fn get_horizontal_fov(&self) -> Result<f32, Status> {
@@ -297,6 +323,14 @@ impl<'device, P: Pixel> Drop for Stream<'device, P> {
         unsafe { oniStreamDestroy(self.stream_handle) };
         mem::forget(self.stream_handle); // TODO: needed?
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Cropping {
+    pub width: u16,
+    pub height: u16,
+    pub origin_x: u16,
+    pub origin_y: u16,
 }
 
 pub struct StreamReader<'stream, P: Pixel> {
