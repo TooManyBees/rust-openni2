@@ -319,6 +319,7 @@ impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
 
 impl<'device, P: Pixel> Drop for Stream<'device, P> {
     fn drop(&mut self) {
+        // TODO: stop it too?
         // oniStreamDestroy doesn't return a status code :/
         unsafe { oniStreamDestroy(self.stream_handle) };
         mem::forget(self.stream_handle); // TODO: needed?

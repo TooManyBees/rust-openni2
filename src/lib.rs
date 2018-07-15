@@ -2,6 +2,7 @@ extern crate openni2_sys;
 use std::os::raw::{c_int, c_void};
 use std::ffi::CStr;
 use std::{mem, ptr, slice};
+use std::marker::PhantomData;
 use openni2_sys::*;
 
 mod device;
@@ -70,24 +71,24 @@ pub fn get_device_list() -> Vec<DeviceInfo> {
     mapped
 }
 
-pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_device_disconnected: &mut F2, on_device_state_changed: &mut F3) -> Result<DeviceCallbackHandle, Status>
-    where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
-    unsafe extern "C" fn on_device_connected_wrapper(info: *const OniDeviceInfo, cookie: *mut c_void) {
-        let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
+pub fn register_device_callbacks<'a, F1, F2, F3>(on_device_connected: F1, on_device_disconnected: F2, on_device_state_changed: F3) -> Result<DeviceCallbackHandle<'a>, Status>
+    where F1: 'a + FnMut(DeviceInfo), F2: 'a + FnMut(DeviceInfo), F3: 'a + FnMut(DeviceInfo, DeviceState) {
+    unsafe extern "C" fn on_device_connected_wrapper<F1, F2, F3>(info: *const OniDeviceInfo, cookie: *mut c_void) where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
+        let mut closures: Box<ClosureStruct<F1, F2, F3>> = Box::from_raw(cookie as *mut ClosureStruct<F1, F2, F3>);
         let device_info = (*info).into();
         (closures.on_device_connected)(device_info);
         mem::forget(closures);
     }
 
-    unsafe extern "C" fn on_device_disconnected_wrapper(info: *const OniDeviceInfo, cookie: *mut c_void) {
-        let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
+    unsafe extern "C" fn on_device_disconnected_wrapper<F1, F2, F3>(info: *const OniDeviceInfo, cookie: *mut c_void) where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
+        let mut closures: Box<ClosureStruct<F1, F2, F3>> = Box::from_raw(cookie as *mut ClosureStruct<F1, F2, F3>);
         let device_info = (*info).into();
         (closures.on_device_disconnected)(device_info);
         mem::forget(closures);
     }
 
-    unsafe extern "C" fn on_device_state_changed_wrapper(device_info: *const OniDeviceInfo, device_state: OniDeviceState, cookie: *mut c_void) {
-        let closures: Box<ClosureStruct> = Box::from_raw(cookie as *mut ClosureStruct);
+    unsafe extern "C" fn on_device_state_changed_wrapper<F1, F2, F3>(device_info: *const OniDeviceInfo, device_state: OniDeviceState, cookie: *mut c_void) where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
+        let mut closures: Box<ClosureStruct<F1, F2, F3>> = Box::from_raw(cookie as *mut ClosureStruct<F1, F2, F3>);
         let device_info = (*device_info).into();
         let device_state = device_state.into();
         (closures.on_device_state_changed)(device_info, device_state);
@@ -101,18 +102,21 @@ pub fn register_device_callbacks<F1, F2, F3>(on_device_connected: &mut F1, on_de
     });
 
     let mut callbacks = OniDeviceCallbacks {
-        deviceConnected: Some(on_device_connected_wrapper),
-        deviceDisconnected: Some(on_device_disconnected_wrapper),
-        deviceStateChanged: Some(on_device_state_changed_wrapper),
+        deviceConnected: Some(on_device_connected_wrapper::<F1, F2, F3>),
+        deviceDisconnected: Some(on_device_disconnected_wrapper::<F1, F2, F3>),
+        deviceStateChanged: Some(on_device_state_changed_wrapper::<F1, F2, F3>),
     };
 
-    let mut callback_handle: OniCallbackHandle = ptr::null_mut();
+    let mut callbacks_handle: OniCallbackHandle = ptr::null_mut();
     let status = unsafe {
-        oniRegisterDeviceCallbacks(&mut callbacks, Box::into_raw(closures) as *mut _, &mut callback_handle)
+        oniRegisterDeviceCallbacks(&mut callbacks, Box::into_raw(closures) as *mut _, &mut callbacks_handle)
     }.into();
 
     match status {
-        Status::Ok => Ok(DeviceCallbackHandle(callback_handle)),
+        Status::Ok => Ok(DeviceCallbackHandle {
+            callbacks_handle,
+            _closures_lifetime: PhantomData,
+        }),
         _ => Err(status),
     }
 }
@@ -156,20 +160,24 @@ pub fn bytes_per_pixel(format: PixelFormat) -> usize {
 }
 
 #[derive(Debug)]
-pub struct DeviceCallbackHandle(OniCallbackHandle);
+pub struct DeviceCallbackHandle<'a>{
+    callbacks_handle: OniCallbackHandle,
+    _closures_lifetime: PhantomData<&'a ()>,
+}
 
-impl DeviceCallbackHandle {
+impl<'a> DeviceCallbackHandle<'a> {
     pub fn unregister(self) {} // POOF! Bye bye
 }
 
-impl Drop for DeviceCallbackHandle {
+impl<'a> Drop for DeviceCallbackHandle<'a> {
     fn drop(&mut self) {
-        unsafe { oniUnregisterDeviceCallbacks(self.0) }
+        unsafe { oniUnregisterDeviceCallbacks(self.callbacks_handle) }
     }
 }
 
-struct ClosureStruct<'a> {
-    on_device_connected: &'a mut FnMut(DeviceInfo),
-    on_device_disconnected: &'a mut FnMut(DeviceInfo),
-    on_device_state_changed: &'a mut FnMut(DeviceInfo, DeviceState),
+struct ClosureStruct<F1, F2, F3>
+    where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
+    on_device_connected: F1,
+    on_device_disconnected: F2,
+    on_device_state_changed: F3,
 }
