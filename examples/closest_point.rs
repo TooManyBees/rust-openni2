@@ -12,7 +12,7 @@ fn callback(reader: &StreamReader<openni2::OniDepthPixel>) {
     let closest = px.iter()
         .enumerate()
         .fold((0u16, 0u16, ::std::u16::MAX), |closest, (n, &depth)| {
-            let (x, y) = (n as u16 % frame.width, n as u16 / frame.width);
+            let (x, y) = (n as u16 % frame.width(), n as u16 / frame.width());
             if depth < closest.2 && depth != 0 {
                 (x, y, depth)
             } else {

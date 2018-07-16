@@ -11,8 +11,6 @@ use openni2::{
     SensorType,
     OniDepthPixel,
     OniRGB888Pixel,
-    VideoMode,
-    PixelFormat,
     Frame,
 };
 
@@ -45,19 +43,7 @@ fn main() -> Result<(), Status> {
     openni2::init(2, 2)?;
     let device = Device::open_default()?;
     let depth = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
-    depth.set_video_mode(VideoMode {
-        pixel_format: PixelFormat::DEPTH_1_MM,
-        resolution_x: 320,
-        resolution_y: 240,
-        fps: 30,
-    })?;
     let color = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
-    color.set_video_mode(VideoMode {
-        pixel_format: PixelFormat::RGB888,
-        resolution_x: 320,
-        resolution_y: 240,
-        fps: 30,
-    })?;
 
     let mut window = match Window::new("OpenNI2 Simple Viewer", 320, 240, WindowOptions {
         resize: false,

@@ -7,21 +7,17 @@ use std::{mem, slice};
 #[derive(Debug)]
 pub struct Frame<'a, T: Pixel> {
     oni_frame: &'a OniFrame,
-    // frame_pointer: *mut OniFrame,
-    pub width: u16,
-    pub height: u16,
+    frame_pointer: *mut OniFrame,
     _pixel_type: PhantomData<T>,
 }
 
 impl<'a, T: Pixel> Frame<'a, T> {
     pub fn from_pointer(pointer: *mut OniFrame) -> Self {
-        // unsafe { oniFrameAddRef(pointer) };
+        unsafe { oniFrameAddRef(pointer) };
         let oni_frame: &OniFrame = unsafe { &*pointer };
         Frame {
             oni_frame: oni_frame,
-            width: oni_frame.width as u16,
-            height: oni_frame.height as u16,
-            // frame_pointer: pointer,
+            frame_pointer: pointer,
             _pixel_type: PhantomData,
         }
     }
@@ -35,11 +31,11 @@ impl<'a, T: Pixel> Frame<'a, T> {
     }
 
     pub fn width(&self) -> u16 {
-        self.width
+        self.oni_frame.width as u16
     }
 
     pub fn height(&self) -> u16 {
-        self.height
+        self.oni_frame.height as u16
     }
 
     pub fn video_mode(&self) -> VideoMode {
@@ -75,7 +71,7 @@ impl<'a, T: Pixel> Frame<'a, T> {
     }
 
     pub fn dimensions(&self) -> (u16, u16) {
-        (self.width, self.height)
+        (self.oni_frame.width as u16, self.oni_frame.height as u16)
     }
 
     pub fn inspect(&self) {
@@ -83,9 +79,9 @@ impl<'a, T: Pixel> Frame<'a, T> {
     }
 }
 
-// impl<'a> Drop for Frame<'a> {
-//     fn drop(&mut self) {
-//         mem::forget(self.oni_frame);
-//         unsafe { oniFrameRelease(self.frame_pointer); }
-//     }
-// }
+impl<'a, P: Pixel> Drop for Frame<'a, P> {
+    fn drop(&mut self) {
+        mem::forget(self.oni_frame);
+        unsafe { oniFrameRelease(self.frame_pointer); }
+    }
+}
