@@ -122,6 +122,7 @@ impl From<c_int> for PixelFormat {
     }
 }
 
+#[doc(hidden)]
 pub fn bytes_per_pixel(format: PixelFormat) -> usize {
     match format {
         PixelFormat::DEPTH_1_MM => 2,

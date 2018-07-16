@@ -14,6 +14,7 @@ pub struct Stream<'device, P: Pixel> {
 }
 
 impl<'device, P: Pixel> Stream<'device, P> {
+    #[doc(hidden)]
     pub fn create(device_handle: &'device OniDeviceHandle, sensor_type: SensorType) -> Result<Self, Status> {
         let mut stream_handle: OniStreamHandle = ptr::null_mut();
         let status = unsafe {
