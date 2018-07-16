@@ -8,6 +8,7 @@ use openni2::{
     OniDepthPixel,
     OniGrayscale16Pixel,
     Pixel,
+    // LogLevel,
 };
 
 fn interrogate_stream<PixelType: Pixel>(device: &Device, sensor_type: SensorType) {
@@ -49,12 +50,10 @@ fn dump_stream_data<P: Pixel>(stream: &Stream<P>) {
 }
 
 fn main() -> Result<(), Status> {
-    let version = openni2::get_version();
-    openni2::init(version.major, version.minor)?;
+    openni2::init()?;
 
     // openni2::set_console_log(true);
-
-    // println!("{:?}", openni2::get_device_list());
+    // openni2::set_log_level(LogLevel::Verbose);
 
     // Try openni2::Device::open_uri("uri") with a uri string returned
     // from openni2::get_device_list()

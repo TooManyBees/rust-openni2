@@ -40,7 +40,7 @@ pub fn depth_histogram(hist: &mut [f32], frame: &Frame<OniDepthPixel>) {
 
 
 fn main() -> Result<(), Status> {
-    openni2::init(2, 2)?;
+    openni2::init()?;
     let device = Device::open_default()?;
     let depth = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
     let color = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;

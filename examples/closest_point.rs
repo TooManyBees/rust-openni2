@@ -23,8 +23,7 @@ fn callback(reader: &StreamReader<openni2::OniDepthPixel>) {
 }
 
 fn main() -> Result<(), Status> {
-    let version = openni2::get_version();
-    openni2::init(version.major, version.minor)?;
+    openni2::init()?;
 
     let device = openni2::Device::open_default()?;
     let stream = device.create_stream(openni2::SensorType::DEPTH)?;

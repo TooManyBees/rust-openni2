@@ -1,6 +1,6 @@
 extern crate openni2_sys;
-use std::os::raw::{c_int, c_void};
-use std::ffi::CStr;
+use std::os::raw::{c_int, c_void, c_char};
+use std::ffi::{CString, CStr};
 use std::{mem, ptr, slice};
 use std::marker::PhantomData;
 use openni2_sys::*;
@@ -19,6 +19,7 @@ pub use types::{
     Timeout,
     VideoMode,
     Pixel,
+    LogLevel,
 };
 pub use device::{Device, DeviceInfo};
 pub use stream::{Stream, StreamListener, StreamReader, Cropping};
@@ -31,18 +32,37 @@ pub use openni2_sys::{
     OniYUV422DoublePixel,
 };
 
-pub fn init(major: c_int, minor: c_int) -> Result<(), Status> {
+/// Initialize the OpenNI2 library
+pub fn init() -> Result<(), Status> {
+    match unsafe { oniInitialize(2 * 1000 + 2) }.into() {
+        Status::Ok => Ok(()),
+        error => Err(error),
+    }
+}
+
+#[doc(hidden)]
+pub fn init_version(major: c_int, minor: c_int) -> Result<(), Status> {
     match unsafe { oniInitialize(major * 1000 + minor) }.into() {
         Status::Ok => Ok(()),
         error => Err(error),
     }
 }
 
+/// Shutdown the OpenNI2 library
 pub fn shutdown() {
     unsafe { oniShutdown() };
 }
 
-// FIXME: returning a private OniVersion type
+/// Returns the version of the OpenNI2 library
+///
+/// ```
+/// let version = openni2::get_version();
+///
+/// assert_eq!(2, version.major);
+/// assert_eq!(2, version.minor);
+/// assert_eq!(0, version.maintenance);
+/// assert_eq!(33, version.build);
+/// ```
 pub fn get_version() -> OniVersion {
     unsafe { oniGetVersion() }
 }
@@ -58,6 +78,15 @@ fn get_extended_error() -> String {
     }
 }
 
+/// Get a vector of `DeviceInfo` structs
+///
+/// ```
+/// let devices = openni2::get_device_list();
+///
+/// for info in devices {
+///     println!("{:?}", info);
+/// }
+/// ```
 pub fn get_device_list() -> Vec<DeviceInfo> {
     let mut pointer = ptr::null_mut();
     let mut count = ONI_MAX_SENSORS as c_int;
@@ -71,6 +100,31 @@ pub fn get_device_list() -> Vec<DeviceInfo> {
     mapped
 }
 
+/// Register callbacks to execute whenever a device is connected, disconnected,
+/// or changes state. The `DeviceInfo` that is passed in as the first argument
+/// to the callbacks contains a `uri` field that can be used to open that
+/// specific device.
+///
+/// See `device_callbacks` or `event_based_read` examples.
+///
+/// # Example
+/// ```
+/// # use openni2::{DeviceInfo, DeviceState, register_device_callbacks};
+/// let mut connect = |device_info: DeviceInfo| {
+///     println!("{} connected", device_info.uri);
+/// };
+///
+/// let mut disconnect = |device_info: DeviceInfo| {
+///     println!("{} disconnected", device_info.uri);
+/// };
+
+/// let mut state_change = |device_info: DeviceInfo, state: DeviceState| {
+///    println!("{} changed state: {:?}", device_info.uri, state);
+/// };
+///
+/// register_device_callbacks(connect, disconnect, state_change);
+/// ```
+///
 pub fn register_device_callbacks<'a, F1, F2, F3>(on_device_connected: F1, on_device_disconnected: F2, on_device_state_changed: F3) -> Result<DeviceCallbackHandle<'a>, Status>
     where F1: 'a + FnMut(DeviceInfo), F2: 'a + FnMut(DeviceInfo), F3: 'a + FnMut(DeviceInfo, DeviceState) {
     unsafe extern "C" fn on_device_connected_wrapper<F1, F2, F3>(info: *const OniDeviceInfo, cookie: *mut c_void) where F1: FnMut(DeviceInfo), F2: FnMut(DeviceInfo), F3: FnMut(DeviceInfo, DeviceState) {
@@ -121,44 +175,70 @@ pub fn register_device_callbacks<'a, F1, F2, F3>(on_device_connected: F1, on_dev
     }
 }
 
+/// Turn logging to console on or off.
 pub fn set_console_log(state: bool) -> Status {
-    let return_value = unsafe {
+    unsafe {
         if state {
             oniSetLogConsoleOutput(1)
         } else {
-            oniSetLogConsoleOutput(2)
+            oniSetLogConsoleOutput(0)
         }
-    };
-    unsafe { oniSetLogMinSeverity(0) };
-    return_value.into()
+    }.into()
 }
 
-pub fn bytes_per_pixel(format: PixelFormat) -> usize {
-    // FIXME: YUV modes will break the runtime assertions that
-    // the expected type param for Frame::pixels() matches the
-    // size of the actual array element. OpenNI2 reports that
-    // YUV pixels are 2 bytes which they are *but* the struct
-    // that holds them is 4 bytes and represents 2 pixels.
-    //
-    // Must decide if we want to "lie" and return 4 from this
-    // function for YUV types (which will not conform to
-    // `oniFormatBytesPerPixel` logic) or if we want to change
-    // the assertions.
-    match format {
-        PixelFormat::DEPTH_1_MM => 2,
-        PixelFormat::DEPTH_100_UM => 2,
-        PixelFormat::SHIFT_9_2 => 2,
-        PixelFormat::SHIFT_9_3 => 2,
-        PixelFormat::RGB888 => 3,
-        PixelFormat::YUV422 => 2,
-        PixelFormat::GRAY8 => 1,
-        PixelFormat::GRAY16 => 2,
-        PixelFormat::JPEG => 1,
-        PixelFormat::YUYV => 2,
-        // _ => unsafe { oniFormatBytesPerPixel(format as i32) as usize },
+/// Turn logging to file on or off.
+pub fn set_file_log(state: bool) -> Status {
+    unsafe {
+        if state {
+            oniSetLogFileOutput(1)
+        } else {
+            oniSetLogFileOutput(0)
+        }
+    }.into()
+}
+
+/// Set the destination directory of the file log. Returns the name of the file, if successful.
+/// If left unset, log files will be written to `"./Log"`
+pub fn set_log_location(folder: &str) -> Result<(), Status> {
+    if let Ok(path) = CString::new(folder) {
+        let status = unsafe { oniSetLogOutputFolder(path.as_ptr()) }.into();
+        match status {
+            Status::Ok => Ok(()),
+            _ => Err(status),
+        }
+    } else {
+        Err(Status::Error(String::from("Invalid directory path")))
     }
 }
 
+/// Gets the filename of the current log file.
+///
+/// This will return an `Err` unless logging to file has already been turned on with `set_file_log`.
+///
+/// # Example
+/// ```no_run
+/// openni2::set_file_log(true);
+/// openni2::set_log_location("./logs");
+/// let file_name = openni2::get_log_file_name().unwrap();
+/// // "/Users/toomanybees/code/rust-openni2/logs/2018_07_16__01_56_47_6304.log"
+/// ```
+pub fn get_log_file_name() -> Result<String, Status> {
+    let mut buffer: [c_char; 256] = [0; 256];
+    let status = unsafe { oniGetLogFileName(buffer.as_mut_ptr(), 256) }.into();
+    println!("{:?}", status);
+    match status {
+        Status::Ok => Ok(unsafe { CStr::from_ptr(buffer.as_ptr()) }.to_string_lossy().into_owned()),
+        _ => Err(status),
+    }
+}
+
+/// Set log level verbosity
+pub fn set_log_level(severity: LogLevel) -> Status {
+    unsafe { oniSetLogMinSeverity(severity as c_int) }.into()
+}
+
+/// When this falls out of scope, callbacks registered with `register_device_callbacks`
+/// are unregistered.
 #[derive(Debug)]
 pub struct DeviceCallbackHandle<'a>{
     callbacks_handle: OniCallbackHandle,

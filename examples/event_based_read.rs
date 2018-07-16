@@ -26,7 +26,7 @@ fn on_device_state_change(device_info: DeviceInfo, state: DeviceState) {
 }
 
 fn main() -> Result<(), Status> {
-    openni2::init(2, 2)?;
+    openni2::init()?;
 
     openni2::register_device_callbacks(on_device_connect, on_device_disconnect, on_device_state_change)?;
 

@@ -4,8 +4,7 @@ use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
 use frame::Frame;
-use types::{Status, SensorType, VideoMode, SensorInfo, Pixel};
-use super::bytes_per_pixel;
+use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 
 pub struct Stream<'device, P: Pixel> {
     device_handle: &'device OniDeviceHandle,

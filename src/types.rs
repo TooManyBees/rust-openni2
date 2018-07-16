@@ -122,6 +122,22 @@ impl From<c_int> for PixelFormat {
     }
 }
 
+pub fn bytes_per_pixel(format: PixelFormat) -> usize {
+    match format {
+        PixelFormat::DEPTH_1_MM => 2,
+        PixelFormat::DEPTH_100_UM => 2,
+        PixelFormat::SHIFT_9_2 => 2,
+        PixelFormat::SHIFT_9_3 => 2,
+        PixelFormat::RGB888 => 3,
+        PixelFormat::YUV422 => 4,
+        PixelFormat::GRAY8 => 1,
+        PixelFormat::GRAY16 => 2,
+        PixelFormat::JPEG => 1,
+        PixelFormat::YUYV => 4,
+        // _ => unsafe { oniFormatBytesPerPixel(format as i32) as usize },
+    }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]
@@ -244,3 +260,13 @@ macro_rules! isPixel {
     )
 }
 isPixel!(OniDepthPixel, /*OniGrayscale16Pixel,*/ OniGrayscale8Pixel, OniRGB888Pixel, OniYUV422DoublePixel);
+
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub enum LogLevel {
+    None = 10,
+    Verbose = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3,
+}

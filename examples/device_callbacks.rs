@@ -3,8 +3,7 @@ use openni2::{Status, DeviceInfo, DeviceState};
 use std::{thread, time};
 
 fn main() -> Result<(), Status> {
-    let version = openni2::get_version();
-    openni2::init(version.major, version.minor)?;
+    openni2::init()?;
 
     let mut on_device_connect = |device_info: DeviceInfo| {
         println!("{} connected", device_info.uri);

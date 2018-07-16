@@ -1,7 +1,6 @@
 use openni2_sys::*;
 use std::marker::PhantomData;
-use super::bytes_per_pixel;
-use types::{VideoMode, Pixel};
+use types::{VideoMode, Pixel, bytes_per_pixel};
 use std::{mem, slice};
 
 #[derive(Debug)]
