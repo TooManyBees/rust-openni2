@@ -123,10 +123,9 @@ impl Device {
                     .iter()
                     .map(|&mode| mode.into())
                     .collect::<Vec<VideoMode>>();
-                mem::forget(info); // i think?
                 Some(SensorInfo {
-                    sensor_type: sensor_type,
-                    video_modes: video_modes,
+                    sensor_type,
+                    video_modes,
                 })
             }
         }
@@ -314,10 +313,7 @@ impl Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        let status = unsafe { oniDeviceClose(self.handle) }.into();
-        if let Status::Ok = status {
-            mem::forget(self.handle);
-        }
+        unsafe { oniDeviceClose(self.handle) };
     }
 }
 

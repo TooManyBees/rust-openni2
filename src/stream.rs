@@ -3,7 +3,7 @@ use std::os::raw::{c_int, c_float, c_void};
 use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
-use frame::Frame;
+use frame::{Frame, frame_from_pointer};
 use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 
 pub struct Stream<'device, P: Pixel> {
@@ -223,10 +223,9 @@ impl<'device, P: Pixel> Stream<'device, P> {
                     .iter()
                     .map(|&mode| mode.into())
                     .collect::<Vec<VideoMode>>();
-                mem::forget(info); // i think?
                 Some(SensorInfo {
                     sensor_type: self.sensor_type,
-                    video_modes: video_modes,
+                    video_modes,
                 })
             }
         }
@@ -319,10 +318,8 @@ impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
 
 impl<'device, P: Pixel> Drop for Stream<'device, P> {
     fn drop(&mut self) {
-        // TODO: stop it too?
-        // oniStreamDestroy doesn't return a status code :/
+        self.stop();
         unsafe { oniStreamDestroy(self.stream_handle) };
-        mem::forget(self.stream_handle); // TODO: needed?
     }
 }
 
@@ -345,7 +342,7 @@ impl<'stream, P: Pixel> StreamReader<'stream, P> {
         let status = unsafe { oniStreamReadFrame(*self.handle, &mut pointer) }.into();
         match status {
             Status::Ok => {
-                Frame::from_pointer(pointer)
+                frame_from_pointer(pointer)
             },
             _ => unreachable!(),
         }

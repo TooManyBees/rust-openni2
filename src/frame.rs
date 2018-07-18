@@ -3,6 +3,16 @@ use std::marker::PhantomData;
 use types::{VideoMode, Pixel, bytes_per_pixel};
 use std::{mem, slice};
 
+pub fn frame_from_pointer<'a, T: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'a, T> {
+    unsafe { oniFrameAddRef(frame_pointer) };
+    let oni_frame: &OniFrame = unsafe { &*frame_pointer };
+    Frame {
+        oni_frame,
+        frame_pointer,
+        _pixel_type: PhantomData,
+    }
+}
+
 #[derive(Debug)]
 pub struct Frame<'a, T: Pixel> {
     oni_frame: &'a OniFrame,
@@ -11,16 +21,6 @@ pub struct Frame<'a, T: Pixel> {
 }
 
 impl<'a, T: Pixel> Frame<'a, T> {
-    pub fn from_pointer(pointer: *mut OniFrame) -> Self {
-        unsafe { oniFrameAddRef(pointer) };
-        let oni_frame: &OniFrame = unsafe { &*pointer };
-        Frame {
-            oni_frame: oni_frame,
-            frame_pointer: pointer,
-            _pixel_type: PhantomData,
-        }
-    }
-
     pub fn timestamp(&self) -> u64 {
         self.oni_frame.timestamp
     }
@@ -80,7 +80,6 @@ impl<'a, T: Pixel> Frame<'a, T> {
 
 impl<'a, P: Pixel> Drop for Frame<'a, P> {
     fn drop(&mut self) {
-        mem::forget(self.oni_frame);
         unsafe { oniFrameRelease(self.frame_pointer); }
     }
 }
