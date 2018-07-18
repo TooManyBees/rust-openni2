@@ -6,7 +6,7 @@ use openni2_sys::*;
 use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo, Pixel};
 use stream::Stream;
 
-/// A device. You need to open one in order to access video streams.
+/// An open device. The device is closed when this struct drops out of scope.
 pub struct Device {
     handle: OniDeviceHandle,
 }
