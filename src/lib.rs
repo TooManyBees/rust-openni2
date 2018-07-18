@@ -17,11 +17,11 @@
 //! extern crate openni2;
 //!
 //! use std::{thread, time};
-//! use openni2::{Status, Device, SensorType, StreamReader, OniDepthPixel};
+//! use openni2::{Status, Device, Stream, SensorType, OniDepthPixel};
 //!
-//! fn callback(stream: &StreamReader<OniDepthPixel>) {
-//!     // `StreamReader` only has one method, and it's `read`
-//!     let frame = stream.read();
+//! fn callback(stream: &Stream<OniDepthPixel>) {
+//!     // This function is only invoked when a frame *is* available to read
+//!     let frame = stream.read_frame().expect("Frame not available to read!");
 //!     let px = frame.pixels();
 //!     let closest = px.iter()
 //!         .enumerate()
@@ -87,7 +87,7 @@ pub use types::{
     LogLevel,
 };
 pub use device::{Device, DeviceInfo};
-pub use stream::{Stream, StreamListener, StreamReader, Cropping};
+pub use stream::{Stream, StreamListener, Cropping};
 pub use frame::Frame;
 pub use openni2_sys::{
     OniDepthPixel,

@@ -22,8 +22,7 @@ pub fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'
 /// # fn main() -> Result<(), openni2::Status> {
 /// # let device = Device::open_default()?;
 /// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
-/// let reader = stream.reader();
-/// let frame = reader.read();
+/// let frame = stream.read_frame().unwrap();
 /// assert_eq!(frame.width(), 320);
 /// assert_eq!(frame.height(), 240);
 /// println!("{:?}", frame.pixels()[0]); // "OniRGB888Pixel { r: 255, g: 173, b: 203 }"

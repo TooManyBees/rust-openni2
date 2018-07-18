@@ -231,6 +231,15 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    pub fn read_frame(&self) -> Result<Frame<P>, Status> {
+        let mut pointer = ptr::null_mut();
+        let status = unsafe { oniStreamReadFrame(self.stream_handle, &mut pointer) }.into();
+        match status {
+            Status::Ok => Ok(frame_from_pointer(pointer)),
+            _ => Err(status),
+        }
+    }
+
     // pub fn is_command_supported(&self, command: OniStreamCommand) -> bool {
     //     let res = unsafe { oniStreamIsCommandSupported(self.stream_handle, command) }
     //     res == 1
@@ -260,12 +269,8 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
     // todo: depth to color (requires 2 streams)
 
-    pub fn reader(&self) -> StreamReader<P> {
-        StreamReader { handle: &self.stream_handle, _pixel_type: PhantomData::<P> }
-    }
-
     // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
-    pub fn listener<F: FnMut(&StreamReader<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
+    pub fn listener<F: FnMut(&Stream<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
         // Ensure that pixel type P matches the pixel format that the
@@ -284,9 +289,8 @@ impl<'device, P: Pixel> Stream<'device, P> {
             closure();
         }
 
-        let reader = self.reader();
         let closure: Box<Box<FnMut()>> = Box::new(Box::new(move || {
-            callback(&reader);
+            callback(&self);
         }));
 
         let status = unsafe {
@@ -329,28 +333,6 @@ pub struct Cropping {
     pub height: u16,
     pub origin_x: u16,
     pub origin_y: u16,
-}
-
-pub struct StreamReader<'stream, P: Pixel> {
-    handle: &'stream OniStreamHandle,
-    _pixel_type: PhantomData<P>,
-}
-
-impl<'stream, P: Pixel> StreamReader<'stream, P> {
-    pub fn read(&self) -> Frame<'stream, P> {
-        let mut pointer = ptr::null_mut();
-        let status = unsafe { oniStreamReadFrame(*self.handle, &mut pointer) }.into();
-        match status {
-            Status::Ok => {
-                frame_from_pointer(pointer)
-            },
-            _ => unreachable!(),
-        }
-    }
-
-    // pub fn bytes_per_pixel(&self) -> usize {
-    //     bytes_per_pixel(self.pixel_format)
-    // }
 }
 
 pub struct StreamListener<'stream, P: Pixel> {

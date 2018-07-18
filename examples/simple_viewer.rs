@@ -57,17 +57,14 @@ fn main() -> Result<(), Status> {
     color.start();
     depth.start();
 
-    let color_reader = color.reader();
-    let depth_reader = depth.reader();
-
     let mut mirror = color.get_mirroring()?;
     let mut display_color = true;
     let mut display_depth = false;
     let mut histogram: [f32; 10000] = unsafe { mem::zeroed() };
     let mut buffer: [u32; 320 * 240] = unsafe { mem::zeroed() };
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let color_frame = color_reader.read();
-        let depth_frame = depth_reader.read();
+        let color_frame = color.read_frame().expect("Color frame not available to read.");
+        let depth_frame = depth.read_frame().expect("Depth frame not available to read.");
         depth_histogram(&mut histogram, &depth_frame);
         for (i, (color, depth)) in color_frame.pixels().iter().zip(depth_frame.pixels()).enumerate() {
             if display_depth && *depth > 0 {

@@ -18,10 +18,11 @@ fn interrogate_stream<PixelType: Pixel>(device: &Device, sensor_type: SensorType
             dump_stream_data(&stream);
             println!("Starting stream: {:?}", stream.start());
             {
-                let stream_reader = stream.reader();
                 for _ in 0..5 {
-                    let frame = stream_reader.read();
-                    println!("Got frame: {:?}", frame);
+                    match stream.read_frame() {
+                        Ok(frame) => println!("Got frame: {:?}", frame),
+                        Err(status) => println!("Couldn't read frame! {}", status),
+                    }
                 }
             }
             stream.stop();
