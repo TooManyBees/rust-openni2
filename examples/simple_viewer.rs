@@ -38,7 +38,6 @@ pub fn depth_histogram(hist: &mut [f32], frame: &Frame<OniDepthPixel>) {
     }
 }
 
-
 fn main() -> Result<(), Status> {
     openni2::init()?;
     let device = Device::open_default()?;

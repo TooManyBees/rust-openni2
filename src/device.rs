@@ -73,6 +73,11 @@ impl Device {
         }
     }
 
+    #[doc(hidden)]
+    pub fn handle(&self) -> OniDeviceHandle {
+        self.handle
+    }
+
     /// Returns a `DeviceInfo` that describes the device.
     ///
     /// # Example

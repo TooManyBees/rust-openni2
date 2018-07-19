@@ -31,6 +31,11 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    #[doc(hidden)]
+    pub fn handle(&self) -> OniStreamHandle {
+        self.stream_handle
+    }
+
     pub fn sensor_type(&self) -> SensorType {
         self.sensor_type
     }
@@ -235,7 +240,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
         let mut pointer = ptr::null_mut();
         let status = unsafe { oniStreamReadFrame(self.stream_handle, &mut pointer) }.into();
         match status {
-            Status::Ok => Ok(frame_from_pointer(pointer)),
+            Status::Ok => unsafe { Ok(frame_from_pointer(pointer)) },
             _ => Err(status),
         }
     }

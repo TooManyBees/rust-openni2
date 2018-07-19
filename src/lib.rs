@@ -73,6 +73,7 @@ use openni2_sys::*;
 mod device;
 mod stream;
 mod frame;
+mod recorder;
 mod types;
 
 pub use types::{
@@ -88,7 +89,8 @@ pub use types::{
 };
 pub use device::{Device, DeviceInfo};
 pub use stream::{Stream, StreamListener, Cropping};
-pub use frame::Frame;
+pub use frame::{Frame, frame_from_pointer};
+pub use recorder::Recorder;
 pub use openni2_sys::{
     OniDepthPixel,
     OniGrayscale16Pixel,

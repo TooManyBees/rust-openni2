@@ -3,9 +3,11 @@ use std::marker::PhantomData;
 use types::{VideoMode, Pixel, bytes_per_pixel};
 use std::{mem, slice};
 
-pub fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'a, P> {
-    unsafe { oniFrameAddRef(frame_pointer) };
-    let oni_frame: &OniFrame = unsafe { &*frame_pointer };
+#[doc(hidden)]
+pub unsafe fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'a, P> {
+    assert!(!frame_pointer.is_null());
+    oniFrameAddRef(frame_pointer);
+    let oni_frame: &OniFrame = &*frame_pointer;
     Frame {
         oni_frame,
         frame_pointer,
