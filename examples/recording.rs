@@ -13,7 +13,7 @@ fn main() -> Result<(), Status> {
 
     let device = Device::open_default()?;
     let stream = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
-    let recorder = Recorder::create("./examples/recording.oni")?;
+    let recorder = Recorder::create("./examples/bees/hithere/recording.oni")?;
     recorder.attach_stream(&stream, true)?;
     recorder.start()?;
     stream.start();
