@@ -14,7 +14,7 @@ fn main() -> Result<(), Status> {
     let device = Device::open_default()?;
     let stream = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
     let recorder = Recorder::create("./examples/bees/hithere/recording.oni")?;
-    recorder.attach_stream(&stream, true)?;
+    recorder.attach_stream(&stream, true)?; // boolean argument: is lossy recording permitted?
     recorder.start()?;
     stream.start();
 
