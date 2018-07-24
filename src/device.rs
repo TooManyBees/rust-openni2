@@ -258,13 +258,29 @@ impl Device {
 
     // DEVICE_PROPERTY_ERROR_STATE ??
 
+    /// Gets the playback speed for recordings. In order for this method to
+    /// work, the device must have been opened with a URI pointing to a
+    /// recording file.
     pub fn get_playback_speed(&self) -> Result<f32, Status> {
         self.get_property::<c_float>(ONI_DEVICE_PROPERTY_PLAYBACK_SPEED)
     }
 
+    /// Sets the playback speed for recordings.
+    pub fn set_playback_speed(&self, value: f32) -> Result<(), Status> {
+        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_SPEED, value)
+    }
+
+    /// Returns whether playback repeat is turned on for a recording. In
+    /// order fo this method to work, the device must have been opened with
+    /// a URI pointing to a recording file.
     pub fn get_playback_repeat_enabled(&self) -> Result<bool, Status> {
         let res = self.get_property::<c_int>(ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED)?;
         Ok(res == 1)
+    }
+
+    /// Sets the playback repeat for recordings.
+    pub fn set_playback_repeat_enabled(&self, value: bool) -> Result<(), Status> {
+        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED, value)
     }
 
     fn get_property<T>(&self, property: OniDeviceProperty) -> Result<T, Status> {
