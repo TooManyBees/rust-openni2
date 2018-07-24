@@ -6,6 +6,8 @@ serve color and depth streams, particularly sensors developed by PrimeSense
 (a founding member of the OpenNI software project) such as the Xbox Kinect,
 and ASUS Xtion.
 
+# App example
+
 ```rust
 extern crate openni2;
 use std::{thread, time};
@@ -55,3 +57,11 @@ devices and streams about their properties, as well as blocking for new frames.
 
 [`examples/closest_point.rs`](examples/closest_point.rs) demonstrates event-based
 callbacks, and finding the closest point in a depth map.
+
+[`examples/device_callbacks.rs`](examples/device_callbacks.rs) demonstrates device callbacks that detect newly connected/disconnected devices
+
+[`examples/simple_viewer.rs`](examples/simple_viewer.rs) is a video stream viewer with keyboard controls.
+* `1` views the color and depth streams overlayed
+* `2` views the color stream
+* `3` views the depth stream
+* `m` toggles video stream mirroring
