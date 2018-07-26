@@ -122,3 +122,14 @@ impl<'a, P: Pixel> Drop for Frame<'a, P> {
         unsafe { oniFrameRelease(self.frame_pointer); }
     }
 }
+
+impl<'a, P: Pixel> Clone for Frame<'a, P> {
+    fn clone(&self) -> Frame<'a, P> {
+        unsafe { oniFrameAddRef(self.frame_pointer); }
+        Frame {
+            oni_frame: self.oni_frame,
+            frame_pointer: self.frame_pointer,
+            _pixel_type: PhantomData,
+        }
+    }
+}
