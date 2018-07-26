@@ -40,8 +40,12 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.sensor_type
     }
 
-    pub fn start(&self) -> Status {
-        unsafe { oniStreamStart(self.stream_handle) }.into()
+    pub fn start(&self) -> Result<(), Status> {
+        let res = unsafe { oniStreamStart(self.stream_handle) }.into();
+        match res {
+            Status::Ok => Ok(()),
+            _ => Err(res),
+        }
     }
 
     pub fn stop(&self) {

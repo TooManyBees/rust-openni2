@@ -42,7 +42,7 @@ fn main() -> Result<(), Status> {
     let _listener = stream.listener(callback)?;
     // Start the stream, then let the callback run until we kill the program
     // ourselves.
-    stream.start();
+    stream.start()?;
     let heartbeat = time::Duration::from_millis(250);
     loop {
         thread::sleep(heartbeat);

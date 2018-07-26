@@ -48,7 +48,7 @@ fn main() -> Result<(), Status> {
             frame.timestamp(), width, height, px[middle]);
     });
 
-    stream.start();
+    stream.start()?;
 
     let one_second = time::Duration::from_millis(1000);
     loop {

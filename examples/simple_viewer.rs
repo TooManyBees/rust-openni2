@@ -53,8 +53,8 @@ fn main() -> Result<(), Status> {
         Err(_) => process::exit(1),
     };
 
-    color.start();
-    depth.start();
+    color.start()?;
+    depth.start()?;
 
     let mut mirror = color.get_mirroring()?;
     let mut display_color = true;

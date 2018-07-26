@@ -30,7 +30,7 @@ fn main() -> Result<(), Status> {
     let device = openni2::Device::open_default()?;
     let stream = device.create_stream(openni2::SensorType::DEPTH)?;
     let _listener = stream.listener(callback)?;
-    stream.start();
+    stream.start()?;
 
     let one_second = time::Duration::from_millis(1000);
     loop {
