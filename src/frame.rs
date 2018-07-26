@@ -6,7 +6,6 @@ use std::{mem, slice};
 #[doc(hidden)]
 pub unsafe fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'a, P> {
     assert!(!frame_pointer.is_null());
-    oniFrameAddRef(frame_pointer);
     let oni_frame: &OniFrame = &*frame_pointer;
     Frame {
         oni_frame,
