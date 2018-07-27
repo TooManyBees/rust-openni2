@@ -145,7 +145,7 @@ impl Device {
     /// # Ok(())
     /// # }
     pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
-        Stream::create(&self.handle, sensor_type)
+        Stream::create(&self, sensor_type)
     }
 
     pub fn color_depth_sync(&self) -> bool {

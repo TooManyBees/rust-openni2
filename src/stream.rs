@@ -3,26 +3,25 @@ use std::os::raw::{c_int, c_float, c_void};
 use std::{ptr, fmt, mem, slice};
 
 use openni2_sys::*;
+use device::Device;
 use frame::{Frame, frame_from_pointer};
 use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 
-pub struct Stream<'device, P: Pixel> {
-    device_handle: &'device OniDeviceHandle,
+pub struct Stream<'device, P: 'device + Pixel> {
     stream_handle: OniStreamHandle,
     sensor_type: SensorType,
-    _pixel_type: PhantomData<P>,
+    _pixel_type: PhantomData<&'device P>,
 }
 
 impl<'device, P: Pixel> Stream<'device, P> {
     #[doc(hidden)]
-    pub fn create(device_handle: &'device OniDeviceHandle, sensor_type: SensorType) -> Result<Self, Status> {
+    pub fn create(device: &'device Device, sensor_type: SensorType) -> Result<Self, Status> {
         let mut stream_handle: OniStreamHandle = ptr::null_mut();
         let status = unsafe {
-            oniDeviceCreateStream(*device_handle, sensor_type as i32, &mut stream_handle)
+            oniDeviceCreateStream(device.handle, sensor_type as i32, &mut stream_handle)
         }.into();
         match status {
             Status::Ok => Ok(Stream {
-                device_handle,
                 stream_handle,
                 sensor_type,
                 _pixel_type: PhantomData,
@@ -325,7 +324,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
 impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Stream {{ device_handle: OniDeviceHandle({:p}), stream_handle: {:p} }}", self.device_handle, &self.stream_handle)
+        write!(f, "Stream {{ stream_handle: {:p} }}", &self.stream_handle)
     }
 }
 

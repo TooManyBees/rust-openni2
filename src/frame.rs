@@ -4,9 +4,9 @@ use types::{VideoMode, Pixel, bytes_per_pixel};
 use std::{mem, slice};
 
 #[doc(hidden)]
-pub unsafe fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<'a, P> {
+pub unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<P> {
     assert!(!frame_pointer.is_null());
-    let oni_frame: &OniFrame = &*frame_pointer;
+    let oni_frame: OniFrame = *frame_pointer;
     Frame {
         oni_frame,
         frame_pointer,
@@ -31,13 +31,13 @@ pub unsafe fn frame_from_pointer<'a, P: Pixel>(frame_pointer: *mut OniFrame) -> 
 /// # }
 /// ```
 #[derive(Debug)]
-pub struct Frame<'a, P: Pixel> {
-    oni_frame: &'a OniFrame,
+pub struct Frame<P: Pixel> {
+    oni_frame: OniFrame,
     frame_pointer: *mut OniFrame,
     _pixel_type: PhantomData<P>,
 }
 
-impl<'a, P: Pixel> Frame<'a, P> {
+impl<P: Pixel> Frame<P> {
     /// The timestamp of the frame.
     pub fn timestamp(&self) -> u64 {
         self.oni_frame.timestamp
@@ -117,14 +117,14 @@ impl<'a, P: Pixel> Frame<'a, P> {
     }
 }
 
-impl<'a, P: Pixel> Drop for Frame<'a, P> {
+impl<P: Pixel> Drop for Frame<P> {
     fn drop(&mut self) {
         unsafe { oniFrameRelease(self.frame_pointer); }
     }
 }
 
-impl<'a, P: Pixel> Clone for Frame<'a, P> {
-    fn clone(&self) -> Frame<'a, P> {
+impl<P: Pixel> Clone for Frame<P> {
+    fn clone(&self) -> Frame<P> {
         unsafe { oniFrameAddRef(self.frame_pointer); }
         Frame {
             oni_frame: self.oni_frame,
