@@ -64,7 +64,7 @@ impl Recorder {
     pub fn start(&self) -> Result<(), Status> {
         match unsafe { oniRecorderStart(self.handle) }.into() {
             Status::Ok => Ok(()),
-            status @ _ => Err(status),
+            status => Err(status),
         }
     }
 

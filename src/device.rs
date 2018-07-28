@@ -258,7 +258,7 @@ impl Device {
     pub fn set_image_registration(&self, on: bool) -> Result<(), Status> {
         self.set_property::<OniImageRegistrationMode>(
             ONI_DEVICE_PROPERTY_IMAGE_REGISTRATION,
-            if on { ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR } else { ONI_IMAGE_REGISTRATION_OFF },
+            &if on { ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR } else { ONI_IMAGE_REGISTRATION_OFF },
         )?;
         Ok(())
     }
@@ -274,7 +274,7 @@ impl Device {
 
     /// Sets the playback speed for recordings.
     pub fn set_playback_speed(&self, value: f32) -> Result<(), Status> {
-        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_SPEED, value)
+        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_SPEED, &value)
     }
 
     /// Returns whether playback repeat is turned on for a recording. In
@@ -287,7 +287,7 @@ impl Device {
 
     /// Sets the playback repeat for recordings.
     pub fn set_playback_repeat_enabled(&self, value: bool) -> Result<(), Status> {
-        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED, value)
+        self.set_property(ONI_DEVICE_PROPERTY_PLAYBACK_REPEAT_ENABLED, &value)
     }
 
     fn get_property<T>(&self, property: OniDeviceProperty) -> Result<T, Status> {
@@ -308,13 +308,13 @@ impl Device {
         }
     }
 
-    fn set_property<T>(&self, property: OniDeviceProperty, value: T) -> Result<(), Status> {
+    fn set_property<T>(&self, property: OniDeviceProperty, value: &T) -> Result<(), Status> {
         let len = mem::size_of::<T>() as c_int;
         let status = unsafe {
             oniDeviceSetProperty(
                 self.handle,
                 property,
-                &value as *const T as *const _,
+                value as *const T as *const _,
                 len,
             )
         }.into();

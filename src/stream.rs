@@ -138,10 +138,10 @@ impl<'device, P: Pixel> Stream<'device, P> {
         let oni_cropping = match value {
             Some(cropping) => OniCropping {
                 enabled: 1,
-                width: cropping.width as c_int,
-                height: cropping.height as c_int,
-                originX: cropping.origin_x as c_int,
-                originY: cropping.origin_y as c_int,
+                width: c_int::from(cropping.width),
+                height: c_int::from(cropping.height),
+                originX: c_int::from(cropping.origin_x),
+                originY: c_int::from(cropping.origin_y),
             },
             None => OniCropping {
                 enabled: 0,
@@ -151,7 +151,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
                 originY: 0,
             },
         };
-        self.set_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING, oni_cropping)
+        self.set_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING, &oni_cropping)
     }
 
     pub fn get_horizontal_fov(&self) -> Result<f32, Status> {
@@ -187,7 +187,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
             resolutionY: value.resolution_y,
             fps: value.fps,
         };
-        self.set_property::<OniVideoMode>(ONI_STREAM_PROPERTY_VIDEO_MODE, oni_value)
+        self.set_property::<OniVideoMode>(ONI_STREAM_PROPERTY_VIDEO_MODE, &oni_value)
     }
 
     /// Returns the max possible numeric value of a depth pixel.
@@ -215,7 +215,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// Set mirroring on the stream. This can be changed while the stream is
     /// running.
     pub fn set_mirroring(&self, value: bool) -> Result<(), Status> {
-        self.set_property::<c_int>(ONI_STREAM_PROPERTY_MIRRORING, value as c_int)
+        self.set_property::<c_int>(ONI_STREAM_PROPERTY_MIRRORING, &(value as c_int))
     }
 
     pub fn get_number_of_frames(&self) -> Result<i32, Status> {
@@ -228,7 +228,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     }
 
     pub fn set_auto_white_balance(&self, value: bool) -> Result<(), Status> {
-        self.set_property::<c_int>(ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE, value as c_int)
+        self.set_property::<c_int>(ONI_STREAM_PROPERTY_AUTO_WHITE_BALANCE, &(value as c_int))
     }
 
     pub fn get_auto_exposure(&self) -> Result<bool, Status> {
@@ -237,7 +237,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     }
 
     pub fn set_auto_exposure(&self, value: bool) -> Result<(), Status> {
-        self.set_property::<c_int>(ONI_STREAM_PROPERTY_AUTO_EXPOSURE, value as c_int)
+        self.set_property::<c_int>(ONI_STREAM_PROPERTY_AUTO_EXPOSURE, &(value as c_int))
     }
 
     pub fn get_exposure(&self) -> Result<i32, Status> {
@@ -246,7 +246,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
     // This gets truncated/wrapped to the range 0...65536 inclusive
     pub fn set_exposure(&self, value: i32) -> Result<(), Status> {
-        self.set_property::<c_int>(ONI_STREAM_PROPERTY_EXPOSURE, value)
+        self.set_property::<c_int>(ONI_STREAM_PROPERTY_EXPOSURE, &value)
     }
 
     pub fn get_gain(&self) -> Result<i32, Status> {
@@ -255,7 +255,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
     // This gets truncated/wrapped to the range 0...65536 inclusive
     pub fn set_gain(&self, value: i32) -> Result<(), Status> {
-        self.set_property::<c_int>(ONI_STREAM_PROPERTY_GAIN, value)
+        self.set_property::<c_int>(ONI_STREAM_PROPERTY_GAIN, &value)
     }
 
     fn get_property<T>(&self, property: OniStreamProperty) -> Result<T, Status> {
@@ -277,13 +277,13 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
-    fn set_property<T>(&self, property: OniStreamProperty, value: T) -> Result<(), Status> {
+    fn set_property<T>(&self, property: OniStreamProperty, value: &T) -> Result<(), Status> {
         let len = mem::size_of::<T>() as c_int;
         let status = unsafe {
             oniStreamSetProperty(
                 self.stream_handle,
                 property,
-                &value as *const T as *const c_void,
+                value as *const T as *const c_void,
                 len,
             )
         }.into();
