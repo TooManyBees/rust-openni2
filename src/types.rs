@@ -3,15 +3,22 @@ use std::fmt;
 use openni2_sys::*;
 use super::get_extended_error;
 
+/// Error state for external OpenNI2 C functions
 #[derive(Debug, Clone)]
 pub enum Status {
+    /// Success
     Ok,
+    /// Some error with a message set by OpenNI2
     Error(String),
     NotImplemented,
+    /// Attempted to set a property not supported by a Stream
     NotSupported,
+    /// Attempted to set a property with an invalid parameter
     BadParameter,
+    /// Stream was not in a required state, like running/stopped
     OutOfFlow,
     NoDevice,
+    /// A timeout expired before an operation succeeded
     TimeOut,
 }
 
@@ -53,6 +60,7 @@ impl From<c_int> for Status {
     }
 }
 
+/// One of the supported sensor types of a device
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]
@@ -79,6 +87,7 @@ impl From<c_int> for SensorType {
     }
 }
 
+/// One of the pixel formats that a `Stream` can use
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]
@@ -139,6 +148,7 @@ pub fn bytes_per_pixel(format: PixelFormat) -> usize {
     }
 }
 
+/// Current state of a device.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]
@@ -167,11 +177,14 @@ impl From<c_int> for DeviceState {
     }
 }
 
+/// Mode for automatically resizing/translating stream outputs
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 #[repr(i32)]
 pub enum ImageRegistrationMode {
+    /// Don't align any streams
     OFF = ONI_IMAGE_REGISTRATION_OFF,
+    /// Resize and reposition the depth stream to match the color stream
     DEPTH_TO_COLOR = ONI_IMAGE_REGISTRATION_DEPTH_TO_COLOR,
 }
 
@@ -215,6 +228,10 @@ impl From<c_int> for Timeout {
     }
 }
 
+/// Dimensions, pixel format, and framerate of a stream.
+///
+/// Returned as current video mode of a stream, or passed as
+/// the desired video mode when updating a stream.
 #[derive(Debug, Copy, Clone)]
 pub struct VideoMode {
     pub pixel_format: PixelFormat,
@@ -256,6 +273,8 @@ pub struct SensorInfo {
 
 macro_rules! isPixel {
     ($($in:ty),+) => (
+        /// Common trait for structs/primitives that can be returned
+        /// as pixel data in a `Frame`
         pub trait Pixel: Copy + fmt::Debug {}
         $(impl Pixel for $in {})+
     )
