@@ -8,7 +8,7 @@ use stream::Stream;
 
 /// An open device. The device is closed when this struct drops out of scope.
 pub struct Device {
-    handle: OniDeviceHandle,
+    pub(crate) handle: OniDeviceHandle,
 }
 
 impl fmt::Debug for Device {
