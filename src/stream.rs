@@ -7,6 +7,34 @@ use device::Device;
 use frame::{Frame, frame_from_pointer};
 use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 
+/// A video stream that pulls frame from a single sensor on a `Device`.
+/// It is type-parameterized with the type of `Pixel` that its frame
+/// is composed of.
+///
+/// The primary use of a `Stream` is to return `Frame` objects with the
+/// `Stream::read_frame()` method.
+///
+/// # Example
+/// ```no_run
+/// # use openni2::{Device, SensorType, OniRGB888Pixel};
+/// # fn main() -> Result<(), openni2::Status> {
+/// let device = Device::open_default()?;
+/// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+/// stream.start()?;
+/// loop {
+///   let frame = stream.read_frame()?;
+///   println!("{:?}", frame.pixels());
+/// }
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Caveats
+///
+/// A `Stream` can only read frames while in its "started" state, set with
+/// `Stream::start()`. A `Stream` can only change its video mode in its
+/// "stopped" state, set with `Stream::stop()`. You don't need to worry
+/// about manually stopping a stream before it falls out of scope.
 pub struct Stream<'device, P: 'device + Pixel> {
     stream_handle: OniStreamHandle,
     sensor_type: SensorType,
@@ -35,10 +63,14 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.stream_handle
     }
 
+    /// The `SensorType` that the stream is pulling frames from (color,
+    /// depth, or IR).
     pub fn sensor_type(&self) -> SensorType {
         self.sensor_type
     }
 
+    /// Starts the stream. If successful, the stream can then read
+    /// frames from the device. Stop the stream with `Stream::stop`.
     pub fn start(&self) -> Result<(), Status> {
         let res = unsafe { oniStreamStart(self.stream_handle) }.into();
         match res {
@@ -47,6 +79,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    /// Stops the stream. It can be restarted with `Stream::start` at any time.
     pub fn stop(&self) {
         unsafe { oniStreamStop(self.stream_handle) };
     }
@@ -56,6 +89,14 @@ impl<'device, P: Pixel> Stream<'device, P> {
         res == 1
     }
 
+    /// Return the stream's current `Cropping` which represents the
+    /// subsection of the original video frame that this frame
+    /// represents. Returns `None` if the frame is not cropped.
+    ///
+    /// # FIXME
+    /// This method will return `Some(Cropping)` even if the crop
+    /// is equal to the original frame dimensions, i.e. it is
+    /// functionally uncropped.
     pub fn get_cropping(&self) -> Result<Option<Cropping>, Status> {
         let oni_cropping = self.get_property::<OniCropping>(ONI_STREAM_PROPERTY_CROPPING)?;
         if oni_cropping.enabled > 0 {
@@ -70,6 +111,29 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    /// Sets the stream's crop to a specific `Cropping`, which describes the
+    /// crop's width, height, and origin.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use openni2::{Device, SensorType, Cropping, OniRGB888Pixel};
+    /// # fn main() -> Result<(), openni2::Status> {
+    /// let device = Device::open_default()?;
+    /// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+    /// let crop = Cropping {
+    ///     width: 100,
+    ///     height: 100,
+    ///     origin_x: 50,
+    ///     origin_y: 50,
+    /// };
+    /// stream.set_cropping(Some(crop))?;
+    /// stream.start()?;
+    /// let frame = stream.read_frame()?;
+    /// assert_eq!(frame.width(), crop.width);
+    /// assert_eq!(frame.height(), crop.height);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_cropping(&self, value: Option<Cropping>) -> Result<(), Status> {
         let oni_cropping = match value {
             Some(cropping) => OniCropping {
@@ -98,6 +162,8 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.get_property::<c_float>(ONI_STREAM_PROPERTY_VERTICAL_FOV)
     }
 
+    /// Returns the current `VideoMode` of the stream, which includes
+    /// the pixel format, the dimensions, and frame rate in FPS.
     pub fn get_video_mode(&self) -> Result<VideoMode, Status> {
         self.get_property::<OniVideoMode>(ONI_STREAM_PROPERTY_VIDEO_MODE)
         .map(|mode| {
@@ -110,6 +176,9 @@ impl<'device, P: Pixel> Stream<'device, P> {
         })
     }
 
+    /// Sets a stream to a specific `VideoMode`. This will fail if the
+    /// stream does not support such a video mode, or if the stream is
+    /// started.
     pub fn set_video_mode(&self, value: VideoMode) -> Result<(), Status> {
         // TODO: validate dimensions and fps!
         let oni_value = OniVideoMode {
@@ -121,10 +190,14 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.set_property::<OniVideoMode>(ONI_STREAM_PROPERTY_VIDEO_MODE, oni_value)
     }
 
+    /// Returns the max possible numeric value of a depth pixel.
+    /// For non-depth streams, this returns `None`.
     pub fn get_max_value(&self) -> Result<i32, Status> {
         self.get_property::<c_int>(ONI_STREAM_PROPERTY_MAX_VALUE)
     }
 
+    /// Returns the minimum possible numeric value of a depth pixel.
+    /// For non-depth streams, this returns `None`.
     pub fn get_min_value(&self) -> Result<i32, Status> {
         self.get_property::<c_int>(ONI_STREAM_PROPERTY_MIN_VALUE)
     }
@@ -133,11 +206,14 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.get_property::<c_int>(ONI_STREAM_PROPERTY_STRIDE)
     }
 
+    /// Returns whether the stream is currently mirrored.
     pub fn get_mirroring(&self) -> Result<bool, Status> {
         let res = self.get_property::<c_int>(ONI_STREAM_PROPERTY_MIRRORING)?;
         Ok(res == 1)
     }
 
+    /// Set mirroring on the stream. This can be changed while the stream is
+    /// running.
     pub fn set_mirroring(&self, value: bool) -> Result<(), Status> {
         self.set_property::<c_int>(ONI_STREAM_PROPERTY_MIRRORING, value as c_int)
     }
@@ -218,11 +294,32 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
-    pub fn get_sensor_info(&self) -> Option<SensorInfo> {
+    /// Returns the stream's `SensorType` and a list of supported `VideoMode`s.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use openni2::{Device, SensorType, OniRGB888Pixel};
+    /// # fn main() -> Result<(), openni2::Status> {
+    /// let device = Device::open_default()?;
+    /// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+    /// let sensor_info = stream.sensor_info()?;
+    /// let supported = sensor_info.video_modes.iter().find(|mode| {
+    ///     mode.resolution_x == 640 &&
+    ///     mode.resolution_y == 480 &&
+    ///     mode.fps == 15
+    /// });
+    /// match supported {
+    ///     Some(&video_mode) => stream.set_video_mode(video_mode)?,
+    ///     None => panic!("Couldn't set desired video mode!"),
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn sensor_info(&self) -> Result<SensorInfo, Status> {
         unsafe {
             let ptr: *const OniSensorInfo = oniStreamGetSensorInfo(self.stream_handle);
             if ptr.is_null() {
-                None
+                Err(Status::OutOfFlow)
             } else {
                 let info: OniSensorInfo = *ptr;
                 let len = info.numSupportedVideoModes as usize;
@@ -231,7 +328,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
                     .iter()
                     .map(|&mode| mode.into())
                     .collect::<Vec<VideoMode>>();
-                Some(SensorInfo {
+                Ok(SensorInfo {
                     sensor_type: self.sensor_type,
                     video_modes,
                 })
@@ -239,6 +336,9 @@ impl<'device, P: Pixel> Stream<'device, P> {
         }
     }
 
+    /// Reads the next `Frame` from the stream. This will block until a frame
+    /// is ready. To avoid blocking, see the `Stream::listener` method to set
+    /// a callback that will be invoked when a frame is ready to be read.
     pub fn read_frame(&self) -> Result<Frame<P>, Status> {
         let mut pointer = ptr::null_mut();
         let status = unsafe { oniStreamReadFrame(self.stream_handle, &mut pointer) }.into();
@@ -277,8 +377,48 @@ impl<'device, P: Pixel> Stream<'device, P> {
 
     // todo: depth to color (requires 2 streams)
 
-    // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
+    /// Register a callback to execute when the stream has a frame immediately
+    /// available.
+    ///
+    /// The callback function takes a single argument, which is the `Stream`
+    /// itself. The callback can call `Stream::read_frame` on the stream,
+    /// and it should not block.
+    ///
+    /// This method returns a `StreamListener` handle, which unregisters
+    /// the callback when it falls out of scope.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use std::{thread, time};
+    /// # use openni2::{Status, Device, Stream, SensorType, OniDepthPixel};
+    /// # struct SomeHypotheticalDisplay {}
+    /// # impl SomeHypotheticalDisplay {
+    /// #     fn new() -> Self { SomeHypotheticalDisplay{} }
+    /// #     fn update_from_buffer(&self, pixels: &[OniDepthPixel]) {}
+    /// # }
+    /// fn main() -> Result<(), Status> {
+    ///     openni2::init()?;
+    ///     let device = Device::open_default()?;
+    ///     let stream = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
+    ///     let display = SomeHypotheticalDisplay::new(); // pretend it's Minifb
+    ///
+    ///     let callback = |stream: &Stream<OniDepthPixel>| {
+    ///         let frame = stream.read_frame().unwrap();
+    ///         display.update_from_buffer(&frame.pixels());
+    ///     };
+    ///
+    ///     // Keep the callback registered until this falls out of scope
+    ///     let _listener = stream.listener(&callback)?;
+    ///
+    ///     let one_second = time::Duration::from_millis(1000);
+    ///     loop {
+    ///         thread::sleep(one_second);
+    ///     }
+    ///     Ok(())
+    /// # }
+    /// ```
     pub fn listener<F: FnMut(&Stream<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
+        // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
         // Ensure that pixel type P matches the pixel format that the
@@ -335,6 +475,7 @@ impl<'device, P: Pixel> Drop for Stream<'device, P> {
     }
 }
 
+/// Dimensions to crop a `Stream` to. See `Stream::set_cropping`
 #[derive(Debug, Copy, Clone)]
 pub struct Cropping {
     pub width: u16,
@@ -343,6 +484,8 @@ pub struct Cropping {
     pub origin_y: u16,
 }
 
+/// Unregisters a `Stream`'s "new frame" callback when it falls
+/// out of scope.
 pub struct StreamListener<'stream, P: Pixel> {
     stream_handle: &'stream OniStreamHandle,
     callback_handle: OniCallbackHandle,

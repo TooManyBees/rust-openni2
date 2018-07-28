@@ -88,6 +88,7 @@ impl Device {
     /// assert_eq!(info.usb_product_id, 1537);
     /// # Ok(())
     /// # }
+    /// ```
     pub fn info(&self) -> Result<DeviceInfo, Status> {
         let mut oni_info: OniDeviceInfo = unsafe { mem::uninitialized() };
         let status: Status = unsafe { oniDeviceGetInfo(self.handle, &mut oni_info) }.into();
@@ -110,6 +111,7 @@ impl Device {
     /// }
     /// # Ok(())
     /// # }
+    /// ```
     pub fn get_sensor_info(&self, sensor_type: SensorType) -> Option<SensorInfo> {
         unsafe {
             let ptr: *const OniSensorInfo = oniDeviceGetSensorInfo(self.handle, sensor_type as i32);
@@ -144,6 +146,7 @@ impl Device {
     /// let depth = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
     /// # Ok(())
     /// # }
+    /// ```
     pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
         Stream::create(&self, sensor_type)
     }
@@ -179,6 +182,7 @@ impl Device {
     /// assert_eq!(&firmware_version, "5.8.22");
     /// # Ok(())
     /// # }
+    /// ```
     pub fn get_firmware_version(&self) -> Result<String, Status> {
         let arr = self.get_property::<[c_char; ONI_MAX_STR as usize]>(ONI_DEVICE_PROPERTY_FIRMWARE_VERSION)?;
         let s = unsafe { CStr::from_ptr(arr.as_ptr()) }.to_string_lossy().into_owned();
@@ -198,6 +202,7 @@ impl Device {
     /// assert_eq!(driver.build, 1);
     /// # Ok(())
     /// # }
+    /// ```
     pub fn get_driver_version(&self) -> Result<OniVersion, Status> {
         // FIXME: don't return a private openni2-sys type
         self.get_property::<OniVersion>(ONI_DEVICE_PROPERTY_DRIVER_VERSION)
@@ -213,6 +218,7 @@ impl Device {
     /// assert_eq!(version, 6);
     /// # Ok(())
     /// # }
+    /// ```
     pub fn get_hardware_version(&self) -> Result<i32, Status> {
         self.get_property::<c_int>(ONI_DEVICE_PROPERTY_HARDWARE_VERSION)
     }
@@ -227,6 +233,7 @@ impl Device {
     /// assert_eq!(&serial, "1403180118");
     /// # Ok(())
     /// # }
+    /// ```
     pub fn get_serial_number(&self) -> Result<String, Status> {
         let arr = self.get_property::<[c_char; ONI_MAX_STR as usize]>(ONI_DEVICE_PROPERTY_SERIAL_NUMBER)?;
         let s = unsafe { CStr::from_ptr(arr.as_ptr()) }.to_string_lossy().into_owned();
