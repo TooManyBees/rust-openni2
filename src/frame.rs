@@ -7,6 +7,15 @@ use std::{mem, slice};
 pub unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<P> {
     assert!(!frame_pointer.is_null());
     let oni_frame: OniFrame = *frame_pointer;
+
+    // Ensure that pixel type P matches the pixel format that the
+    // current video mode will return. Compile-time typing is possible
+    // but is extremely impractical considering that a stream's video
+    // mode can be changed.
+    let type_param_size = mem::size_of::<P>();
+    let pixel_size = bytes_per_pixel(oni_frame.videoMode.pixelFormat.into());
+    assert_eq!(type_param_size, pixel_size, "Size of callback's type parameter ({}) is different than the stream's pixel size reported by OpenNI2 ({}). Did you register the wrong callback on a stream?", type_param_size, pixel_size);
+
     Frame {
         oni_frame,
         frame_pointer,
@@ -22,8 +31,8 @@ pub unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Fram
 /// # use openni2::{Device, OniRGB888Pixel, SensorType};
 /// # fn main() -> Result<(), openni2::Status> {
 /// # let device = Device::open_default()?;
-/// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
-/// let frame = stream.read_frame().unwrap();
+/// let stream = device.create_stream(SensorType::COLOR)?;
+/// let frame = stream.read_frame::<OniRGB888Pixel>().unwrap();
 /// assert_eq!(frame.width(), 320);
 /// assert_eq!(frame.height(), 240);
 /// println!("{:?}", frame.pixels()[0]); // "OniRGB888Pixel { r: 255, g: 173, b: 203 }"

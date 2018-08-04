@@ -3,7 +3,7 @@ use std::{ptr, fmt, mem, slice};
 use std::ffi::{CString, CStr};
 
 use openni2_sys::*;
-use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo, Pixel};
+use types::{Status, SensorType, ImageRegistrationMode, VideoMode, SensorInfo};
 use stream::Stream;
 
 /// An open device. The device is closed when this struct drops out of scope.
@@ -142,12 +142,12 @@ impl Device {
     /// use openni2::{Device, SensorType, OniRGB888Pixel, OniDepthPixel};
     /// # fn main() -> Result<(), openni2::Status> {
     /// let device = Device::open_default()?;
-    /// let color = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
-    /// let depth = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
+    /// let color = device.create_stream(SensorType::COLOR)?;
+    /// let depth = device.create_stream(SensorType::DEPTH)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
+    pub fn create_stream(&self, sensor_type: SensorType) -> Result<Stream, Status> {
         Stream::create(&self, sensor_type)
     }
 

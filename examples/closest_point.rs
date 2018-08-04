@@ -6,10 +6,10 @@ extern crate openni2;
 use openni2::{Status, Stream};
 use std::{thread, time};
 
-fn callback(stream: &Stream<openni2::OniDepthPixel>) {
+fn callback(stream: &Stream) {
     // The whole idea of a stream listener is that its callback fires when a frame
     // is ready to read, thus the `expect` should be fine.
-    let frame = stream.read_frame().expect("Frame somehow not available for read.");
+    let frame = stream.read_frame::<openni2::OniDepthPixel>().expect("Frame somehow not available for read.");
     let px = frame.pixels();
     let closest = px.iter()
         .enumerate()

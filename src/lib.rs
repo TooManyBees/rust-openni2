@@ -19,9 +19,9 @@
 //! use std::{thread, time};
 //! use openni2::{Status, Device, Stream, SensorType, OniDepthPixel};
 //!
-//! fn callback(stream: &Stream<OniDepthPixel>) {
+//! fn callback(stream: &Stream) {
 //!     // This function is only invoked when a frame *is* available to read
-//!     let frame = stream.read_frame().expect("Frame not available to read!");
+//!     let frame = stream.read_frame::<OniDepthPixel>().expect("Frame not available to read!");
 //!     let px = frame.pixels();
 //!     let closest = px.iter()
 //!         .enumerate()

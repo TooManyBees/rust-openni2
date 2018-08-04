@@ -37,8 +37,8 @@ fn main() -> Result<(), Status> {
     let device = Device::open_default()?;
     let stream = device.create_stream(SensorType::DEPTH)?;
 
-    let _listener = stream.listener(|stream: &Stream<OniDepthPixel>| {
-        let frame = stream.read_frame().expect("Couldn't read frame for some reason.");
+    let _listener = stream.listener(|stream: &Stream| {
+        let frame = stream.read_frame::<OniDepthPixel>().expect("Couldn't read frame for some reason.");
         let (width, height) = frame.dimensions();
         let px = frame.pixels();
 

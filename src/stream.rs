@@ -5,11 +5,9 @@ use std::{ptr, fmt, mem, slice};
 use openni2_sys::*;
 use device::Device;
 use frame::{Frame, frame_from_pointer};
-use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
+use types::{Status, SensorType, VideoMode, SensorInfo, Pixel};
 
 /// A video stream that pulls frame from a single sensor on a `Device`.
-/// It is type-parameterized with the type of `Pixel` that its frame
-/// is composed of.
 ///
 /// The primary use of a `Stream` is to return `Frame` objects with the
 /// `Stream::read_frame()` method.
@@ -19,10 +17,10 @@ use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 /// # use openni2::{Device, SensorType, OniRGB888Pixel};
 /// # fn main() -> Result<(), openni2::Status> {
 /// let device = Device::open_default()?;
-/// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+/// let stream = device.create_stream(SensorType::COLOR)?;
 /// stream.start()?;
 /// loop {
-///   let frame = stream.read_frame()?;
+///   let frame = stream.read_frame::<OniRGB888Pixel>()?;
 ///   println!("{:?}", frame.pixels());
 /// }
 /// # Ok(())
@@ -35,13 +33,13 @@ use types::{Status, SensorType, VideoMode, SensorInfo, Pixel, bytes_per_pixel};
 /// `Stream::start()`. A `Stream` can only change its video mode in its
 /// "stopped" state, set with `Stream::stop()`. You don't need to worry
 /// about manually stopping a stream before it falls out of scope.
-pub struct Stream<'device, P: 'device + Pixel> {
+pub struct Stream<'device> {
     stream_handle: OniStreamHandle,
     sensor_type: SensorType,
-    _pixel_type: PhantomData<&'device P>,
+    _pixel_type: PhantomData<&'device ()>,
 }
 
-impl<'device, P: Pixel> Stream<'device, P> {
+impl<'device> Stream<'device> {
     #[doc(hidden)]
     pub fn create(device: &'device Device, sensor_type: SensorType) -> Result<Self, Status> {
         let mut stream_handle: OniStreamHandle = ptr::null_mut();
@@ -119,7 +117,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// # use openni2::{Device, SensorType, Cropping, OniRGB888Pixel};
     /// # fn main() -> Result<(), openni2::Status> {
     /// let device = Device::open_default()?;
-    /// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+    /// let stream = device.create_stream(SensorType::COLOR)?;
     /// let crop = Cropping {
     ///     width: 100,
     ///     height: 100,
@@ -128,7 +126,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// };
     /// stream.set_cropping(Some(crop))?;
     /// stream.start()?;
-    /// let frame = stream.read_frame()?;
+    /// let frame = stream.read_frame::<OniRGB888Pixel>()?;
     /// assert_eq!(frame.width(), crop.width);
     /// assert_eq!(frame.height(), crop.height);
     /// # Ok(())
@@ -301,7 +299,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// # use openni2::{Device, SensorType, OniRGB888Pixel};
     /// # fn main() -> Result<(), openni2::Status> {
     /// let device = Device::open_default()?;
-    /// let stream = device.create_stream::<OniRGB888Pixel>(SensorType::COLOR)?;
+    /// let stream = device.create_stream(SensorType::COLOR)?;
     /// let sensor_info = stream.sensor_info()?;
     /// let supported = sensor_info.video_modes.iter().find(|mode| {
     ///     mode.resolution_x == 640 &&
@@ -339,7 +337,37 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// Reads the next `Frame` from the stream. This will block until a frame
     /// is ready. To avoid blocking, see the `Stream::listener` method to set
     /// a callback that will be invoked when a frame is ready to be read.
-    pub fn read_frame(&self) -> Result<Frame<P>, Status> {
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use openni2::{Device, SensorType, OniRGB888Pixel};
+    /// # fn main() -> Result<(), openni2::Status> {
+    /// let device = Device::open_default()?;
+    /// let stream = device.create_stream(SensorType::COLOR)?;
+    /// let frame = stream.read_frame::<OniRGB888Pixel>()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// It is currently the programmer's responsibility to type parameterize
+    /// this method with the correct pixel type that the stream is returning
+    /// (which can be changed at runtime with `Stream::set_video_mode`).
+    /// `Stream::read_frame` will panic if the byte sizes reported by the
+    /// `Frame` and type parameter `P: Pixel` do not match.
+    /// ```no_run
+    /// # use openni2::{Device, SensorType, OniDepthPixel};
+    /// # fn main() -> Result<(), openni2::Status> {
+    /// let device = Device::open_default()?;
+    /// let stream = device.create_stream(SensorType::COLOR)?;
+    /// let frame = stream.read_frame::<OniDepthPixel>()?;
+    /// // panic! Color stream defaults to 3-byte `OniRGB888Pixel`,
+    /// // but `OniDepthPixel` is only 2 bytes.
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn read_frame<P: Pixel>(&self) -> Result<Frame<P>, Status> {
         let mut pointer = ptr::null_mut();
         let status = unsafe { oniStreamReadFrame(self.stream_handle, &mut pointer) }.into();
         match status {
@@ -399,11 +427,11 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// fn main() -> Result<(), Status> {
     ///     openni2::init()?;
     ///     let device = Device::open_default()?;
-    ///     let stream = device.create_stream::<OniDepthPixel>(SensorType::DEPTH)?;
+    ///     let stream = device.create_stream(SensorType::DEPTH)?;
     ///     let display = SomeHypotheticalDisplay::new(); // pretend it's Minifb
     ///
-    ///     let callback = |stream: &Stream<OniDepthPixel>| {
-    ///         let frame = stream.read_frame().unwrap();
+    ///     let callback = |stream: &Stream| {
+    ///         let frame = stream.read_frame::<OniDepthPixel>().unwrap();
     ///         display.update_from_buffer(&frame.pixels());
     ///     };
     ///
@@ -417,20 +445,9 @@ impl<'device, P: Pixel> Stream<'device, P> {
     ///     Ok(())
     /// # }
     /// ```
-    pub fn listener<F: FnMut(&Stream<P>)>(&self, mut callback: F) -> Result<StreamListener<P>, Status> {
+    pub fn listener<F: FnMut(&Stream)>(&self, mut callback: F) -> Result<StreamListener, Status> {
         // Yowzers https://stackoverflow.com/questions/32270030/how-do-i-convert-a-rust-closure-to-a-c-style-callback
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
-
-        // Ensure that pixel type P matches the pixel format that the
-        // current video mode will return. Compile-time typing is possible
-        // but is extremely impractical considering that a stream's video
-        // mode can be changed.
-        let type_param_size = mem::size_of::<P>();
-        let pixel_size = {
-            let video_mode = self.get_video_mode().expect("Couldn't fetch stream's video mode to assert that callback accepts a matching pixel format.");
-            bytes_per_pixel(video_mode.pixel_format)
-        };
-        assert_eq!(type_param_size, pixel_size, "Size of callback's type parameter ({}) is different than the stream's pixel size reported by OpenNI2 ({}). Did you register the wrong callback on a stream?", type_param_size, pixel_size);
 
         extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
             let closure: &mut Box<FnMut()> = unsafe { mem::transmute(cookie) };
@@ -454,7 +471,7 @@ impl<'device, P: Pixel> Stream<'device, P> {
                 stream_handle: &self.stream_handle,
                 callback_handle,
                 // closure_ptr,
-                _pixel_type: PhantomData
+                // _pixel_type: PhantomData
             })
         } else {
             Err(status)
@@ -462,13 +479,13 @@ impl<'device, P: Pixel> Stream<'device, P> {
     }
 }
 
-impl<'device, P: Pixel> fmt::Debug for Stream<'device, P> {
+impl<'device> fmt::Debug for Stream<'device> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Stream {{ stream_handle: {:p} }}", &self.stream_handle)
     }
 }
 
-impl<'device, P: Pixel> Drop for Stream<'device, P> {
+impl<'device> Drop for Stream<'device> {
     fn drop(&mut self) {
         self.stop();
         unsafe { oniStreamDestroy(self.stream_handle) };
@@ -486,14 +503,14 @@ pub struct Cropping {
 
 /// Unregisters a `Stream`'s "new frame" callback when it falls
 /// out of scope.
-pub struct StreamListener<'stream, P: Pixel> {
+pub struct StreamListener<'stream> {
     stream_handle: &'stream OniStreamHandle,
     callback_handle: OniCallbackHandle,
     // closure_ptr: *mut c_void,
-    _pixel_type: PhantomData<P>,
+    // _pixel_type: PhantomData<P>,
 }
 
-impl<'stream, P: Pixel> Drop for StreamListener<'stream, P> {
+impl<'stream> Drop for StreamListener<'stream> {
     fn drop(&mut self) {
         unsafe {
             oniStreamUnregisterNewFrameCallback(
