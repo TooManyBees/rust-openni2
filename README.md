@@ -1,21 +1,23 @@
 # OpenNI2 for Rust
 
 In-development Rust wrapper for [OpenNI2](https://github.com/occipital/OpenNI2).
-OpenNI2 is useful for working with multi-sensor cameras that can simultaneously
-serve color and depth streams, particularly sensors developed by PrimeSense
-(a founding member of the OpenNI software project) such as the Xbox Kinect,
-and ASUS Xtion.
+OpenNI2 is useful for working with PrimeSense cameras that can simultaneously
+capture color and depth streams. PrimeSense was a founding member of the OpenNI
+software project, and compatible devices include the Xbox Kinect, and ASUS Xtion.
 
 # App example
 
 ```rust
 extern crate openni2;
 use std::{thread, time};
-use openni2::{Status, Device, Stream, SensorType, OniDepthPixel};
-fn callback(stream: &Stream<OniDepthPixel>) {
-    // This function is only invoked when a frame *is* available to read
+use openni2::{Status, Device, Stream, SensorType, DepthPixel1MM};
+fn callback(stream: &Stream<DepthPixel16>) {
+    // This callback is only invoked when a frame *is* available to read,
+    // so the `expect` is rather safe.
     let frame = stream.read_frame().expect("Frame not available to read!");
     let px = frame.pixels();
+    // `DepthPixel1MM`'s associated type `<DepthPixel1MM as Pixel>::Format` tells us that this
+    // stream will give us frames containing `u16` depth pixels.
     let closest = px.iter()
         .enumerate()
         .fold((0u16, 0u16, ::std::u16::MAX), |closest, (n, &depth)| {
@@ -34,8 +36,10 @@ fn main() -> Result<(), Status> {
     // Open the first device we find, or abort early
     let device = Device::open_default()?;
     // Get a handle for opening a stream from its depth sensor. If the device
-    // didn't have a depth sensor, it would return `Err` and abort the program.
-    let stream = device.create_stream(SensorType::DEPTH)?;
+    // didn't have a depth sensor, or if the depth sensor couldn't return this
+    // particular format of pixel (a `u16` representing 1 millimeter of depth)
+    // it would return `Err`.
+    let stream = device.create_stream::<DepthPixel1MM>(SensorType::DEPTH)?;
     // Register a callback that will be called, with the stream as its first
     // argument, whenever a new frame is ready. When the listener falls out of
     // scope, the callback will be unregistered.

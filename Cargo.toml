@@ -5,7 +5,7 @@ authors = ["Jesse Bees <jesse@toomanybees.com>"]
 description = "Rust interface to OpenNI2"
 repository = "https://github.com/TooManyBees/rust-openni2"
 readme = "README.md"
-keywords = ["openni2", "computer-vision", "natural-interaction", "kinect", "xtion"]
+keywords = ["openni2", "computer-vision", "natural-interaction", "kinect", "primesense"]
 categories = ["multimedia::video", "hardware-support"]
 license = "MIT"
 
