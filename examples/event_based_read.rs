@@ -11,6 +11,7 @@ use openni2::{
     SensorType,
     Stream,
     OniDepthPixel,
+    DepthPixel1MM,
 };
 
 fn on_device_connect(device_info: DeviceInfo) {
@@ -35,10 +36,10 @@ fn main() -> Result<(), Status> {
     }
 
     let device = Device::open_default()?;
-    let stream = device.create_stream(SensorType::DEPTH)?;
+    let stream = device.create_stream::<DepthPixel1MM>(SensorType::DEPTH)?;
 
-    let _listener = stream.listener(|stream: &Stream| {
-        let frame = stream.read_frame::<OniDepthPixel>().expect("Couldn't read frame for some reason.");
+    let _listener = stream.listener(|stream: &Stream<DepthPixel1MM>| {
+        let frame = stream.read_frame().expect("Couldn't read frame for some reason.");
         let (width, height) = frame.dimensions();
         let px = frame.pixels();
 

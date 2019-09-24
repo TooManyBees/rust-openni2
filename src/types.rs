@@ -87,64 +87,48 @@ impl From<c_int> for SensorType {
     }
 }
 
-/// One of the pixel formats that a `Stream` can use
-#[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone)]
-#[repr(i32)]
-pub enum PixelFormat {
-    // Depth
-    DEPTH_1_MM = ONI_PIXEL_FORMAT_DEPTH_1_MM,
-    DEPTH_100_UM = ONI_PIXEL_FORMAT_DEPTH_100_UM,
-    SHIFT_9_2 = ONI_PIXEL_FORMAT_SHIFT_9_2,
-    SHIFT_9_3 = ONI_PIXEL_FORMAT_SHIFT_9_3,
-
-    // Color
-    RGB888 = ONI_PIXEL_FORMAT_RGB888,
-    YUV422 = ONI_PIXEL_FORMAT_YUV422,
-    GRAY8 = ONI_PIXEL_FORMAT_GRAY8,
-    GRAY16 = ONI_PIXEL_FORMAT_GRAY16,
-    JPEG = ONI_PIXEL_FORMAT_JPEG,
-    YUYV = ONI_PIXEL_FORMAT_YUYV,
+pub trait Pixel: fmt::Debug {
+    type Format;
+    const BYTES_PER_PIXEL: usize;
+    const ONI_PIXEL_FORMAT: i32;
 }
 
-impl PixelFormat {
-    fn from_int(value: c_int) -> Self {
-        match value {
-            ONI_PIXEL_FORMAT_DEPTH_1_MM => PixelFormat::DEPTH_1_MM,
-            ONI_PIXEL_FORMAT_DEPTH_100_UM => PixelFormat::DEPTH_100_UM,
-            ONI_PIXEL_FORMAT_SHIFT_9_2 => PixelFormat::SHIFT_9_2,
-            ONI_PIXEL_FORMAT_SHIFT_9_3 => PixelFormat::SHIFT_9_3,
-            ONI_PIXEL_FORMAT_RGB888 => PixelFormat::RGB888,
-            ONI_PIXEL_FORMAT_YUV422 => PixelFormat::YUV422,
-            ONI_PIXEL_FORMAT_GRAY8 => PixelFormat::GRAY8,
-            ONI_PIXEL_FORMAT_GRAY16 => PixelFormat::GRAY16,
-            ONI_PIXEL_FORMAT_JPEG => PixelFormat::JPEG,
-            ONI_PIXEL_FORMAT_YUYV => PixelFormat::YUYV,
-            _ => panic!("Unknown pixel format {}", value),
+macro_rules! pixel {
+    ($in:ident, $px:ty, $enum:expr, $bpp:literal) => {
+        #[derive(Debug)]
+        pub struct $in(pub $px);
+        impl Pixel for $in {
+            type Format = $px;
+            const BYTES_PER_PIXEL: usize = $bpp;
+            const ONI_PIXEL_FORMAT: i32 = $enum;
         }
     }
 }
 
-impl From<c_int> for PixelFormat {
-    fn from(i: c_int) -> Self {
-        PixelFormat::from_int(i)
-    }
-}
+pixel!(DepthPixel1MM, OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_1_MM, 2);
+pixel!(DepthPixel100UM, OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_100_UM, 2);
+//struct DepthPixelShift92;
+//struct DepthPixelShift93;
+pixel!(ColorPixelRGB888, OniRGB888Pixel, ONI_PIXEL_FORMAT_RGB888, 3);
+pixel!(ColorPixelYUV442, OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUV422, 4);
+pixel!(ColorPixelGray8, OniGrayscale8Pixel, ONI_PIXEL_FORMAT_GRAY8, 1);
+pixel!(ColorPixelGray16, OniGrayscale16Pixel, ONI_PIXEL_FORMAT_GRAY16, 2);
+//struct ColorPixelJpeg;
+pixel!(ColorPixelYUYV, OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUYV, 4);
 
-#[doc(hidden)]
-pub fn bytes_per_pixel(format: PixelFormat) -> usize {
+pub(crate) unsafe fn bytes_per_pixel(format: i32) -> usize {
     match format {
-        PixelFormat::DEPTH_1_MM => 2,
-        PixelFormat::DEPTH_100_UM => 2,
-        PixelFormat::SHIFT_9_2 => 2,
-        PixelFormat::SHIFT_9_3 => 2,
-        PixelFormat::RGB888 => 3,
-        PixelFormat::YUV422 => 4,
-        PixelFormat::GRAY8 => 1,
-        PixelFormat::GRAY16 => 2,
-        PixelFormat::JPEG => 1,
-        PixelFormat::YUYV => 4,
-        // _ => unsafe { oniFormatBytesPerPixel(format as i32) as usize },
+        ONI_PIXEL_FORMAT_DEPTH_1_MM => 2,
+        ONI_PIXEL_FORMAT_DEPTH_100_UM => 2,
+        ONI_PIXEL_FORMAT_SHIFT_9_2 => 2,
+        ONI_PIXEL_FORMAT_SHIFT_9_3 => 2,
+        ONI_PIXEL_FORMAT_RGB888 => 3,
+        ONI_PIXEL_FORMAT_YUV422 => 4,
+        ONI_PIXEL_FORMAT_GRAY8 => 1,
+        ONI_PIXEL_FORMAT_GRAY16 => 2,
+        ONI_PIXEL_FORMAT_JPEG => 1,
+        ONI_PIXEL_FORMAT_YUYV => 4,
+         _ => oniFormatBytesPerPixel(format) as usize,
     }
 }
 
@@ -228,13 +212,12 @@ impl From<c_int> for Timeout {
     }
 }
 
-/// Dimensions, pixel format, and framerate of a stream.
+/// Dimensions and framerate of a stream.
 ///
 /// Returned as current video mode of a stream, or passed as
 /// the desired video mode when updating a stream.
 #[derive(Debug, Copy, Clone)]
 pub struct VideoMode {
-    pub pixel_format: PixelFormat,
     pub resolution_x: c_int,
     pub resolution_y: c_int,
     pub fps: c_int,
@@ -243,7 +226,6 @@ pub struct VideoMode {
 impl From<OniVideoMode> for VideoMode {
     fn from(mode: OniVideoMode) -> Self {
         VideoMode {
-            pixel_format: mode.pixelFormat.into(),
             resolution_x: mode.resolutionX,
             resolution_y: mode.resolutionY,
             fps: mode.fps,
@@ -270,16 +252,6 @@ pub struct SensorInfo {
     pub sensor_type: SensorType,
     pub video_modes: Vec<VideoMode>,
 }
-
-macro_rules! isPixel {
-    ($($in:ty),+) => (
-        /// Common trait for structs/primitives that can be returned
-        /// as pixel data in a `Frame`
-        pub trait Pixel: Copy + fmt::Debug {}
-        $(impl Pixel for $in {})+
-    )
-}
-isPixel!(OniDepthPixel, /*OniGrayscale16Pixel,*/ OniGrayscale8Pixel, OniRGB888Pixel, OniYUV422DoublePixel);
 
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]

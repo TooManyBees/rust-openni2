@@ -1,12 +1,12 @@
 use std::{fs, ptr};
 use std::ffi::CString;
 use std::path::Path;
-use types::Status;
+use types::{Status, Pixel};
 use stream::Stream;
 use openni2_sys::*;
 
 /// Records streams' frames to disk. After a `Recorder` is created, attach
-/// `Stream`s to it through `Recorder::attach_stream(stream: &Stream)`.
+/// `Stream`s to it through `Recorder::attach_stream<P: Pixel>(stream: &Stream<P>)`.
 /// Multiple streams can be attached at once. There is no requirement that
 /// both the `Recorder` and `Stream` stay running continuously, but the
 /// stream can not be attached while recording is running.
@@ -48,7 +48,7 @@ impl Recorder {
     ///
     /// There is no practical limit to the number of streams that can be attached
     /// to the recorder at once.
-    pub fn attach_stream(&self, stream: &Stream, lossy: bool) -> Result<(), Status> {
+    pub fn attach_stream<P: Pixel>(&self, stream: &Stream<P>, lossy: bool) -> Result<(), Status> {
         let lossy = if lossy { 1 } else { 0 };
         let status = unsafe {
             oniRecorderAttachStream(self.handle, stream.handle(), lossy)

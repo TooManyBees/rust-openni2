@@ -4,17 +4,9 @@ use types::{VideoMode, Pixel, bytes_per_pixel};
 use std::{mem, slice};
 
 #[doc(hidden)]
-pub unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<P> {
+pub(crate) unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Frame<P> {
     assert!(!frame_pointer.is_null());
     let oni_frame: OniFrame = *frame_pointer;
-
-    // Ensure that pixel type P matches the pixel format that the
-    // current video mode will return. Compile-time typing is possible
-    // but is extremely impractical considering that a stream's video
-    // mode can be changed.
-    let type_param_size = mem::size_of::<P>();
-    let pixel_size = bytes_per_pixel(oni_frame.videoMode.pixelFormat.into());
-    assert_eq!(type_param_size, pixel_size, "Size of callback's type parameter ({}) is different than the stream's pixel size reported by OpenNI2 ({}). Did you register the wrong callback on a stream?", type_param_size, pixel_size);
 
     Frame {
         oni_frame,
@@ -28,14 +20,14 @@ pub unsafe fn frame_from_pointer<P: Pixel>(frame_pointer: *mut OniFrame) -> Fram
 /// # Example
 ///
 /// ```no_run
-/// # use openni2::{Device, OniRGB888Pixel, SensorType};
+/// # use openni2::{Device, ColorPixelRGB888, OniRGB888Pixel, SensorType};
 /// # fn main() -> Result<(), openni2::Status> {
 /// # let device = Device::open_default()?;
-/// let stream = device.create_stream(SensorType::COLOR)?;
-/// let frame = stream.read_frame::<OniRGB888Pixel>().unwrap();
+/// let stream = device.create_stream::<ColorPixelRGB888>(SensorType::COLOR)?;
+/// let frame = stream.read_frame().unwrap();
 /// assert_eq!(frame.width(), 320);
 /// assert_eq!(frame.height(), 240);
-/// println!("{:?}", frame.pixels()[0]); // "OniRGB888Pixel { r: 255, g: 173, b: 203 }"
+/// assert_eq!(frame.pixels()[0], OniRGB888Pixel { r: 255, g: 173, b: 203 });
 /// # Ok(())
 /// # }
 /// ```
@@ -94,24 +86,32 @@ impl<P: Pixel> Frame<P> {
         self.oni_frame.stride as u16
     }
 
-    /// Returns the actual pixel data of the frame as an array of pixels of type `P`.
+    /// Returns the actual pixel data of the frame as an array of pixels of type `P::Format`.
     ///
     /// # Panics
-    /// `Frame::pixels` will panic if the byte size of the pixel format, as described in the
-    /// frame's `VideoMode`, doesn't match `mem::size_of::<P>()`. This could happen if you
-    /// created a stream with a `Pixel` type parameter that doesn't match what the stream
-    /// is actually going to return.
     ///
-    /// In other word's it's the programmer's responsibility to type the `Stream` correctly.
-    pub fn pixels(&self) -> &[P] {
-        let pixel_size = bytes_per_pixel(self.oni_frame.videoMode.pixelFormat.into());
-        let type_param_size = mem::size_of::<P>();
-        assert_eq!(type_param_size, pixel_size, "Size of Frame::pixels() type parameter ({}) is different than pixel size reported by OpenNI2 ({}). If this method worked before, you may have changed the video mode of a stream without unregistering an existing callback.", type_param_size, pixel_size);
-
+    /// If the byte size of the frame does not match the expected size for its dimensions and
+    /// pixel format, this method will panic. This should only happen in the case of a malfunction
+    /// of OpenNI2, or if a stream had its pixel format changed without its Rust type changing.
+    ///
+    /// (If it is possible to reach into OpenNI2 internals and unsafely change a stream's pixel
+    /// format through the library, that is considered a bug.)
+    pub fn pixels(&self) -> &[P::Format] {
         let num_pixels = self.oni_frame.width as usize * self.oni_frame.height as usize;
-        assert_eq!(self.oni_frame.dataSize as usize, num_pixels * pixel_size);
+
+        if cfg!(debug_assertions) {
+            assert_eq!(
+                self.oni_frame.dataSize as usize,
+                num_pixels * P::BYTES_PER_PIXEL,
+                "Expected frame bytesize ({}) did not match actual pixel bytesize ({}).",
+                self.oni_frame.dataSize,
+                num_pixels * P::BYTES_PER_PIXEL
+            );
+        } else {
+            assert_eq!(self.oni_frame.dataSize as usize, num_pixels * P::BYTES_PER_PIXEL, "Expected frame bytesize did not match actual pixel bytesize.");
+        }
         unsafe {
-            slice::from_raw_parts(self.oni_frame.data as *const P, num_pixels)
+            slice::from_raw_parts(self.oni_frame.data as *const P::Format, num_pixels)
         }
     }
 

@@ -17,11 +17,11 @@
 //! extern crate openni2;
 //!
 //! use std::{thread, time};
-//! use openni2::{Status, Device, Stream, SensorType, OniDepthPixel};
+//! use openni2::{Status, Device, Stream, SensorType, DepthPixel1MM};
 //!
-//! fn callback(stream: &Stream) {
+//! fn callback(stream: &Stream<DepthPixel1MM>) {
 //!     // This function is only invoked when a frame *is* available to read
-//!     let frame = stream.read_frame::<OniDepthPixel>().expect("Frame not available to read!");
+//!     let frame = stream.read_frame().expect("Frame not available to read!");
 //!     let px = frame.pixels();
 //!     let closest = px.iter()
 //!         .enumerate()
@@ -45,7 +45,7 @@
 //!
 //!     // Get a handle for opening a stream from its depth sensor. If the device
 //!     // didn't have a depth sensor, it would return `Err` and abort the program.
-//!     let stream = device.create_stream(SensorType::DEPTH)?;
+//!     let stream = device.create_stream::<DepthPixel1MM>(SensorType::DEPTH)?;
 //!
 //!     // Register a callback that will be called, with the stream as its first
 //!     // argument, whenever a new frame is ready. When the listener falls out of
@@ -79,17 +79,23 @@ mod types;
 pub use types::{
     Status,
     SensorType,
-    PixelFormat,
     DeviceState,
     ImageRegistrationMode,
     Timeout,
     VideoMode,
     Pixel,
     LogLevel,
+    DepthPixel1MM,
+    DepthPixel100UM,
+    ColorPixelRGB888,
+    ColorPixelYUV442,
+    ColorPixelGray8,
+    ColorPixelGray16,
+    ColorPixelYUYV,
 };
 pub use device::{Device, DeviceInfo};
 pub use stream::{Stream, StreamListener, Cropping};
-pub use frame::{Frame, frame_from_pointer};
+pub use frame::{Frame};
 pub use recorder::Recorder;
 pub use openni2_sys::{
     OniDepthPixel,

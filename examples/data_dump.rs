@@ -4,9 +4,9 @@ use openni2::{
     Status,
     SensorType,
     Stream,
-    OniRGB888Pixel,
-    OniDepthPixel,
-    OniGrayscale16Pixel,
+    DepthPixel1MM,
+    ColorPixelRGB888,
+    ColorPixelGray16,
     Pixel,
     // LogLevel,
 };
@@ -14,12 +14,12 @@ use openni2::{
 fn interrogate_stream<PixelType: Pixel>(device: &Device, sensor_type: SensorType) {
     if let Some(sensor_info) = device.get_sensor_info(sensor_type) {
         println!("{:#?}", sensor_info);
-        if let Ok(mut stream) = device.create_stream(sensor_type) {
+        if let Ok(mut stream) = device.create_stream::<PixelType>(sensor_type) {
             dump_stream_data(&stream);
             println!("Starting stream: {:?}", stream.start());
             {
                 for _ in 0..5 {
-                    match stream.read_frame::<PixelType>() {
+                    match stream.read_frame() {
                         Ok(frame) => println!("Got frame: {:?}", frame),
                         Err(status) => println!("Couldn't read frame! {}", status),
                     }
@@ -33,7 +33,7 @@ fn interrogate_stream<PixelType: Pixel>(device: &Device, sensor_type: SensorType
     }
 }
 
-fn dump_stream_data(stream: &Stream) {
+fn dump_stream_data<PixelType: Pixel>(stream: &Stream<PixelType>) {
     println!("Cropping: {:?}", stream.get_cropping().ok());
     println!("Horizontal FOV: {:?}", stream.get_horizontal_fov().ok());
     println!("Vertical FOV: {:?}", stream.get_vertical_fov().ok());
@@ -66,11 +66,11 @@ fn main() -> Result<(), Status> {
     println!("Hardware Version: {:?}", device.get_hardware_version());
     println!("Serial No: {:?}", device.get_serial_number());
 
-    interrogate_stream::<OniRGB888Pixel>(&device, SensorType::COLOR);
+    interrogate_stream::<ColorPixelRGB888>(&device, SensorType::COLOR);
 
-    interrogate_stream::<OniDepthPixel>(&device, SensorType::DEPTH);
+    interrogate_stream::<DepthPixel1MM>(&device, SensorType::DEPTH);
 
-    interrogate_stream::<OniGrayscale16Pixel>(&device, SensorType::IR);
+    interrogate_stream::<ColorPixelGray16>(&device, SensorType::IR);
 
     openni2::shutdown();
     Ok(())

@@ -8,13 +8,14 @@ use std::{mem, process};
 use openni2::{
     Status,
     Device,
+    Stream,
     SensorType,
-    OniDepthPixel,
-    OniRGB888Pixel,
     Frame,
+    DepthPixel1MM,
+    ColorPixelRGB888,
 };
 
-pub fn depth_histogram(hist: &mut [f32], frame: &Frame<OniDepthPixel>) {
+pub fn depth_histogram(hist: &mut [f32], frame: &Frame<DepthPixel1MM>) {
     let pixels = frame.pixels();
     let mut count = 0usize;
     for h in hist.iter_mut() {
@@ -41,8 +42,8 @@ pub fn depth_histogram(hist: &mut [f32], frame: &Frame<OniDepthPixel>) {
 fn main() -> Result<(), Status> {
     openni2::init()?;
     let device = Device::open_default()?;
-    let depth = device.create_stream(SensorType::DEPTH)?;
-    let color = device.create_stream(SensorType::COLOR)?;
+    let depth: Stream<DepthPixel1MM> = device.create_stream(SensorType::DEPTH)?;
+    let color: Stream<ColorPixelRGB888> = device.create_stream(SensorType::COLOR)?;
 
     let mut window = match Window::new("OpenNI2 Simple Viewer", 320, 240, WindowOptions {
         resize: false,
@@ -62,8 +63,8 @@ fn main() -> Result<(), Status> {
     let mut histogram: [f32; 10000] = unsafe { mem::zeroed() };
     let mut buffer: [u32; 320 * 240] = unsafe { mem::zeroed() };
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let color_frame = color.read_frame::<OniRGB888Pixel>().expect("Color frame not available to read.");
-        let depth_frame = depth.read_frame::<OniDepthPixel>().expect("Depth frame not available to read.");
+        let color_frame = color.read_frame().expect("Color frame not available to read.");
+        let depth_frame = depth.read_frame().expect("Depth frame not available to read.");
         depth_histogram(&mut histogram, &depth_frame);
         for (i, (color, depth)) in color_frame.pixels().iter().zip(depth_frame.pixels()).enumerate() {
             if display_depth && *depth > 0 {
