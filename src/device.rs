@@ -148,7 +148,14 @@ impl Device {
     /// ```
     pub fn create_stream<P: Pixel>(&self, sensor_type: SensorType) -> Result<Stream<P>, Status> {
         let stream = Stream::create(&self, sensor_type)?;
-        Ok(stream)
+        /* This looks like it's doing nothing, but `stream.with_video_mode` is using the type param
+           `P` to set the correct pixel format. It just also needs to call `stream.get_video_mode`
+           to get the current stream dimensions/fps in order to get the other required fields for
+           the OniVideoMode struct. (We can't be arbitrarily choosing framerate and frame size,
+           who knows what's valid for a device we just opened.)
+        */
+        let video_mode = stream.get_video_mode()?;
+        stream.with_video_mode::<P>(video_mode).map_err(|(status, _): (Status, Stream<P>)| status)
     }
 
     pub fn color_depth_sync(&self) -> bool {

@@ -161,6 +161,35 @@ impl<'device, P: Pixel> Stream<'device, P> {
         self.get_property::<c_float>(ONI_STREAM_PROPERTY_VERTICAL_FOV)
     }
 
+    /// Sets a stream to a specific `VideoMode`. This will fail if the
+    /// stream does not support such a video mode, or if the stream is
+    /// started.
+    ///
+    /// Unlike `Stream::set_video_mode` this can change the pixel format of the stream's frames.
+    /// To do that, this method consumes itself. On success it will return a new `Stream<NewP>`.
+    /// On failure it will return the tuple `(Status, self)` because the stream is still valid
+    /// and ready to restart; its pixel format is simply unchanged.
+    pub fn with_video_mode<NewP: Pixel>(self, value: VideoMode) -> Result<Stream<'device, NewP>, (Status, Stream<'device, P>)> {
+        let oni_value = OniVideoMode {
+            pixelFormat: NewP::ONI_PIXEL_FORMAT,
+            resolutionX: value.resolution_x,
+            resolutionY: value.resolution_y,
+            fps: value.fps,
+        };
+        match self.set_property::<OniVideoMode>(ONI_STREAM_PROPERTY_VIDEO_MODE, &oni_value) {
+            Ok(_) => {
+                let new_stream: Stream<NewP> = Stream {
+                    stream_handle: self.stream_handle,
+                    sensor_type: self.sensor_type,
+                    _pixel_type: PhantomData,
+                };
+                mem::forget(self); // Stream's drop impl would otherwise close the underlying stream handle
+                Ok(new_stream)
+            },
+            Err(status) => Err((status, self)),
+        }
+    }
+
     /// Returns the current `VideoMode` of the stream, which includes
     /// the pixel format, the dimensions, and frame rate in FPS.
     pub fn get_video_mode(&self) -> Result<VideoMode, Status> {
@@ -177,10 +206,13 @@ impl<'device, P: Pixel> Stream<'device, P> {
     /// Sets a stream to a specific `VideoMode`. This will fail if the
     /// stream does not support such a video mode, or if the stream is
     /// started.
-    pub fn set_video_mode(&self, value: VideoMode) -> Result<(), Status> {
+    ///
+    /// This can not change the pixel format of the stream's frames, because the pixel format is
+    /// encoded into the stream's type parameter `P`. Use `Stream::with_video_mode` instead.
+    pub fn set_video_mode<PixelFormat: Pixel>(&self, value: VideoMode) -> Result<(), Status> {
         // TODO: validate dimensions and fps!
         let oni_value = OniVideoMode {
-            pixelFormat: P::ONI_PIXEL_FORMAT,
+            pixelFormat: PixelFormat::ONI_PIXEL_FORMAT,
             resolutionX: value.resolution_x,
             resolutionY: value.resolution_y,
             fps: value.fps,
