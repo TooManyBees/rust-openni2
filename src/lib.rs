@@ -87,10 +87,13 @@ pub use types::{
     LogLevel,
     DepthPixel1MM,
     DepthPixel100UM,
+    DepthPixelShift92,
+    DepthPixelShift93,
     ColorPixelRGB888,
     ColorPixelYUV442,
     ColorPixelGray8,
     ColorPixelGray16,
+    ColorPixelJpeg,
     ColorPixelYUYV,
 };
 pub use device::{Device, DeviceInfo};

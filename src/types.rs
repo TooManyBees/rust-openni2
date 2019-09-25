@@ -107,13 +107,13 @@ macro_rules! pixel {
 
 pixel!(DepthPixel1MM, OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_1_MM, 2);
 pixel!(DepthPixel100UM, OniDepthPixel, ONI_PIXEL_FORMAT_DEPTH_100_UM, 2);
-//struct DepthPixelShift92;
-//struct DepthPixelShift93;
+pixel!(DepthPixelShift92, OniDepthPixel, ONI_PIXEL_FORMAT_SHIFT_9_2, 2);
+pixel!(DepthPixelShift93, OniDepthPixel, ONI_PIXEL_FORMAT_SHIFT_9_3, 2);
 pixel!(ColorPixelRGB888, OniRGB888Pixel, ONI_PIXEL_FORMAT_RGB888, 3);
 pixel!(ColorPixelYUV442, OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUV422, 4);
 pixel!(ColorPixelGray8, OniGrayscale8Pixel, ONI_PIXEL_FORMAT_GRAY8, 1);
 pixel!(ColorPixelGray16, OniGrayscale16Pixel, ONI_PIXEL_FORMAT_GRAY16, 2);
-//struct ColorPixelJpeg;
+pixel!(ColorPixelJpeg, u8, ONI_PIXEL_FORMAT_JPEG, 1);
 pixel!(ColorPixelYUYV, OniYUV422DoublePixel, ONI_PIXEL_FORMAT_YUYV, 4);
 
 pub(crate) unsafe fn bytes_per_pixel(format: i32) -> usize {

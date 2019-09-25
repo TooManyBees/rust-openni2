@@ -134,8 +134,7 @@ impl Device {
     }
 
     /// Creates a `Stream` for a given `SensorType`. The function must also be annotated
-    /// with the type of pixel to return. Valid pixel types are `OniDepthPixel`,
-    /// `OniGrayscale16Pixel`, `OniGrayscale8Pixel`, `OniRGB888Pixel`, and `OniYUV422DoublePixel`.
+    /// with the type of pixel to return.
     ///
     /// # Example
     /// ```no_run
