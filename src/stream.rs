@@ -450,11 +450,12 @@ impl<'device> Stream<'device> {
         let mut callback_handle: OniCallbackHandle = ptr::null_mut();
 
         extern "C" fn callback_wrapper(_: OniStreamHandle, cookie: *mut c_void) {
-            let closure: &mut Box<FnMut()> = unsafe { mem::transmute(cookie) };
+            // cookie, here, is a pointer to a Box<dyn FnMut()>
+            let closure: &mut dyn FnMut() = unsafe { &mut *(cookie as *mut Box<dyn FnMut()>) };
             closure();
         }
 
-        let closure: Box<Box<FnMut()>> = Box::new(Box::new(move || {
+        let closure: Box<Box<dyn FnMut()>> = Box::new(Box::new(move || {
             callback(&self);
         }));
 
