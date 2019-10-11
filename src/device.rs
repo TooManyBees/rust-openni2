@@ -90,10 +90,10 @@ impl Device {
     /// # }
     /// ```
     pub fn info(&self) -> Result<DeviceInfo, Status> {
-        let mut oni_info: OniDeviceInfo = unsafe { mem::uninitialized() };
-        let status: Status = unsafe { oniDeviceGetInfo(self.handle, &mut oni_info) }.into();
+        let mut oni_info = mem::MaybeUninit::<OniDeviceInfo>::uninit();
+        let status: Status = unsafe { oniDeviceGetInfo(self.handle, oni_info.as_mut_ptr()) }.into();
         match status {
-            Status::Ok => Ok(oni_info.into()),
+            Status::Ok => Ok(unsafe { oni_info.assume_init() }.into()),
             _ => Err(status),
         }
     }
@@ -291,19 +291,19 @@ impl Device {
     }
 
     fn get_property<T>(&self, property: OniDeviceProperty) -> Result<T, Status> {
-        let mut data: T = unsafe { mem::uninitialized() };
+        let mut data = mem::MaybeUninit::<T>::uninit();
         let mut len = mem::size_of::<T>() as c_int;
 
         let status = unsafe {
             oniDeviceGetProperty(
                 self.handle,
-                property, &mut data as *mut _ as *mut c_void,
+                property, data.as_mut_ptr() as *mut c_void,
                 &mut len as *mut c_int,
             )
         }.into();
 
         match status {
-            Status::Ok => Ok(data),
+            Status::Ok => Ok(unsafe { data.assume_init() }),
             _ => Err(status),
         }
     }

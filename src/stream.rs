@@ -257,20 +257,20 @@ impl<'device> Stream<'device> {
     }
 
     fn get_property<T>(&self, property: OniStreamProperty) -> Result<T, Status> {
-        let mut data: T = unsafe { mem::uninitialized() };
+        let mut data = mem::MaybeUninit::<T>::uninit();
         let mut len = mem::size_of::<T>() as c_int;
 
         let status = unsafe {
             oniStreamGetProperty(
                 self.stream_handle,
                 property,
-                &mut data as *mut _ as *mut c_void,
+                data.as_mut_ptr() as *mut c_void,
                 &mut len as *mut c_int,
             )
         }.into();
 
         match status {
-            Status::Ok => Ok(data),
+            Status::Ok => Ok(unsafe { data.assume_init() }),
             _ => Err(status),
         }
     }
