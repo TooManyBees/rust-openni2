@@ -8,6 +8,7 @@ readme = "README.md"
 keywords = ["openni2", "computer-vision", "natural-interaction", "kinect", "xtion"]
 categories = ["multimedia::video", "hardware-support"]
 license = "MIT"
+edition = "2015"
 
 [dependencies]
 openni2-sys = "1.0"

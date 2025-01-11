@@ -4,7 +4,7 @@
 extern crate minifb;
 extern crate openni2;
 use minifb::{ Window, Key, KeyRepeat, WindowOptions, Scale };
-use std::{mem, process};
+use std::process;
 use openni2::{
     Status,
     Device,
@@ -59,8 +59,8 @@ fn main() -> Result<(), Status> {
     let mut mirror = color.get_mirroring()?;
     let mut display_color = true;
     let mut display_depth = false;
-    let mut histogram: [f32; 10000] = unsafe { mem::zeroed() };
-    let mut buffer: [u32; 320 * 240] = unsafe { mem::zeroed() };
+    let mut histogram = vec![0f32; 10000].into_boxed_slice();
+    let mut buffer = vec![0u32; 320 * 240].into_boxed_slice();
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let color_frame = color.read_frame::<OniRGB888Pixel>().expect("Color frame not available to read.");
         let depth_frame = depth.read_frame::<OniDepthPixel>().expect("Depth frame not available to read.");
